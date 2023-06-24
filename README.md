@@ -10,6 +10,7 @@ The FocalMaster is divided into 3 pages, the workflow goes from the left page to
 
 ### Scan Barcodes
 ![scan barcodes](Images/ScanBarcodes.jpg)
+
 Here you specify all image files that belong a one program and start the scan process. The order of the files is very important. The fist page of the barcode listing must be the first file in the list and so on. Otherwise the scanner stops with a checksum error.
 
 #### Add
@@ -65,8 +66,10 @@ RTN
 ```
 
 
-### Barocode View
-![barcode view](Images/ScanBarcodes.jpg)
+### Barcode View
+![barcode view](Images/BarcodeView.jpg)
+
+The "Barcode View" displays the full FOCAL program as barcodes. It still needs to be tested whether the Wand can directly read barcodes from the screen.
 
 ### Debug Feature
 In case the FocalMaster cannot successfully read a barcode image file, the hidden debug feature might help you to identify and fix the problem:
