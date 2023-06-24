@@ -80,5 +80,5 @@ FocalMaster will jump to the "Barcode View" page and display the image in gray s
 
 ![barcode view](Images/Debug.jpg)
 
-### Acknoledgment
+### Acknowledgment
 The FocalMaster uses the PdfSharp library from Stefan Lange, empira Software GmbH.
