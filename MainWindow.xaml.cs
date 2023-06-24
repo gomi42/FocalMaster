@@ -44,12 +44,7 @@ namespace FocalMaster
         public MainWindow()
         {
             InitializeComponent();
-            var files = new List<string>() {
-                                               @"D:\Programme\HP41\FocalComp\Testdaten\2\TYLR10-1.jpg",
-                                               @"D:\Programme\HP41\FocalComp\Testdaten\2\TYLR10-2.jpg",
-                                               @"D:\Programme\HP41\FocalComp\Testdaten\2\TYLR10-3.jpg",
-            };
-            BarcodeFiles.ItemsSource = files;
+            BarcodeFiles.ItemsSource = new List<string>();
 
             System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
             FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
