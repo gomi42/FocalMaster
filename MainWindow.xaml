@@ -1,0 +1,244 @@
+﻿<Window x:Class="FocalMaster.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:FocalMaster"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Title="HP 41 Focal Master"
+        Width="800"
+        Height="500"
+        MinWidth="300"
+        MinHeight="500"
+        AllowDrop="True"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        mc:Ignorable="d">
+    <Grid>
+        <TabControl x:Name="MyTabControl"
+                    Margin="-1,0,-1,-1">
+            <TabItem Header="Scan Barcodes">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Margin="10,10,0,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="80" />
+                        </Grid.RowDefinitions>
+                        <ListBox x:Name="BarcodeFiles"
+                                 DragOver="BarcodeFilesDragOver"
+                                 Drop="BarcodeFilesDrop" />
+                        <TextBox x:Name="ShowErrorsScan"
+                                 Grid.Row="1"
+                                 Margin="0,10,0,0"
+                                 IsReadOnly="True"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 Text="" />
+                        <Grid Grid.Row="1"
+                              Margin="0,1,0,0"
+                              VerticalAlignment="Top">
+                            <Rectangle Width="30"
+                                       Height="1"
+                                       Fill="{StaticResource NaviButtonBorderBrush}" />
+                            <Rectangle Width="30"
+                                       Height="1"
+                                       Margin="0,5,0,0"
+                                       Fill="{StaticResource NaviButtonBorderBrush}" />
+                        </Grid>
+                        <GridSplitter Grid.Row="1"
+                                      Height="10"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Top"
+                                      Background="Transparent"
+                                      ResizeDirection="Rows"
+                                      ShowsPreview="true" />
+                    </Grid>
+                    <Button Grid.Column="1"
+                            Margin="0,20,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonAdd"
+                            Content="Add"
+                            ToolTip="Add files to the list" />
+                    <Button Grid.Column="1"
+                            Margin="0,65,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonRemove"
+                            Content="Remove"
+                            ToolTip="Remove the selected file from the list" />
+                    <Button Grid.Column="1"
+                            Margin="0,110,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonRemoveAll"
+                            Content="Remove All"
+                            ToolTip="Clear the list of files" />
+                    <RepeatButton Grid.Column="1"
+                                  Margin="0,180,0,0"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  Click="ButtonUp"
+                                  Focusable="False"
+                                  ToolTip="Move selected file one line up">
+                        <Path Data="M10,0 L20,10 0,10 z"
+                              Fill="#FF787878" />
+                    </RepeatButton>
+                    <RepeatButton Grid.Column="1"
+                                  Margin="0,225,0,0"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  Click="ButtonDown"
+                                  Focusable="False"
+                                  ToolTip="Move selected file one line down">
+                        <Path Data="M0,0 L20,0 10,10 z"
+                              Fill="#FF787878" />
+                    </RepeatButton>
+                    <Button Grid.Column="1"
+                            Margin="0,270,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonSort"
+                            Content="Sort"
+                            ToolTip="Sort the list of files alphabetically" />
+                    <Button Grid.Column="1"
+                            Margin="0,340,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonScan"
+                            Content="Scan"
+                            ToolTip="Start scanning the files in the listed order" />
+                </Grid>
+            </TabItem>
+            <TabItem Header="FOCAL Source">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="150" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Margin="10,10,0,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="80" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="Focal"
+                                 AcceptsReturn="True"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        <TextBox x:Name="ShowErrors"
+                                 Grid.Row="1"
+                                 Margin="0,10,0,0"
+                                 IsReadOnly="True"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 Text="" />
+                        <GridSplitter Grid.Row="1"
+                                      Height="10"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Top"
+                                      Background="Transparent"
+                                      ResizeDirection="Rows"
+                                      ShowsPreview="true" />
+                        <Grid Grid.Row="1"
+                              Margin="0,1,0,0"
+                              VerticalAlignment="Top">
+                            <Rectangle Width="30"
+                                       Height="1"
+                                       Fill="{StaticResource NaviButtonBorderBrush}" />
+                            <Rectangle Width="30"
+                                       Height="1"
+                                       Margin="0,5,0,0"
+                                       Fill="{StaticResource NaviButtonBorderBrush}" />
+                        </Grid>
+                    </Grid>
+                    <Button Grid.Column="1"
+                            Margin="0,20,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonLoadFocal"
+                            Content="Load FOCAL"
+                            ToolTip="Load FOCAL from file" />
+                    <Button Grid.Column="1"
+                            Margin="0,65,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonSaveFocal"
+                            Content="Save Focal"
+                            ToolTip="Save the FOCAL to file" />
+                    <Button Grid.Column="1"
+                            Margin="0,135,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonCreateBarcode"
+                            Content="Create Barcode"
+                            ToolTip="Create the barcodes for display" />
+                    <Button Grid.Column="1"
+                            Margin="0,180,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonExportBarcode"
+                            Content="Export Barcode"
+                            ToolTip="Export the barcodes as PDF or JPG" />
+                    <Button Grid.Column="1"
+                            Margin="0,250,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonLoadRaw"
+                            Content="Import Raw"
+                            ToolTip="Import FOCAL from a raw file" />
+                    <Button Grid.Column="1"
+                            Margin="0,295,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonExportRaw"
+                            Content="Export Raw"
+                            ToolTip="Export FOCAL to a raw file" />
+                    <Button Grid.Column="1"
+                            Margin="0,365,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonValidate"
+                            Content="Validate"
+                            ToolTip="Validate the current FOCAL" />
+                </Grid>
+            </TabItem>
+            <TabItem Header="Barcode View">
+                <Border Margin="10"
+                        Background="White"
+                        BorderBrush="{StaticResource NaviButtonBorderBrush}"
+                        BorderThickness="1">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Border x:Name="BarcodeVisualizer"
+                                    Padding="10" />
+                            <ItemsControl x:Name="MyImages"
+                                          Visibility="Collapsed">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Image Source="{Binding}"
+                                               Stretch="None" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </ScrollViewer>
+                </Border>
+            </TabItem>
+        </TabControl>
+        <Border x:Name="ShowScanning"
+                Background="#80808080"
+                Visibility="Collapsed">
+            <Border Width="200"
+                    Height="70"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="White"
+                    CornerRadius="10">
+                <TextBlock HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Text="Scanning..." />
+            </Border>
+        </Border>
+    </Grid>
+</Window>
