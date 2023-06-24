@@ -76,7 +76,7 @@ In case the FocalMaster cannot successfully read a barcode image file, the hidde
 - the debug features works only on the first file of the list, move the problematic file to the top of the list
 - click "Scan" while holding the CTRL key on the keyboard
 
-FocalMaster will jump the the "Barcode View" page and display the image in gray scale. Additionally all identified barcodes are marked with a red rectangle. As shown below the command "CF 29" is recognized as a barcode. Usually the FocalMaster is able to ignore none-program barcodes. But there might be cases where such barcodes are tried to read as program barcodes - which does not succeed. It can help to create a new image out of existing one but remove the identified none-program barcodes and try again.
+FocalMaster will jump to the "Barcode View" page and display the image in gray scale. Additionally all identified barcodes are marked with a red rectangle. As shown below the command "CF 29" is recognized as a barcode. Usually the FocalMaster is able to ignore none-program barcodes. But there might be cases where such barcodes are tried to read as program barcodes - which does not succeed. It can help to create a new image out of existing one but remove the identified none-program barcodes and try again.
 
 ![barcode view](Images/Debug.jpg)
 
