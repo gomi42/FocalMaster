@@ -9,7 +9,7 @@ FOCAL means "Forty One Calculator Language" and is the programming language of t
 The FocalMaster is divided into 3 pages, the workflow goes from the left page to the right page. Throughout the following description the "RPN Primer" from the Wand manual (page 34 and 35) is used as an example.
 
 ### Scan Barcodes
-![scan barcodes](images/ScanBarcodes.jpg)
+![scan barcodes](Images/ScanBarcodes.jpg)
 Here you specify all image files that belong a one program and start the scan process. The order of the files is very important. The fist page of the barcode listing must be the first file in the list and so on. Otherwise the scanner stops with a checksum error.
 
 #### Add
@@ -28,7 +28,7 @@ Sort all file alphabetically.
 Start the scan process. If the scan was successful FocalMaster will jump to the "FOCAL Source" page and display the decoded FOCAL program. Otherwise the errors are displayed in error window.
 
 ### Focal Source
-![focal source](images/FocalSource.jpg)
+![focal source](Images/FocalSource.jpg)
 #### Load FOCAL
 Load a FOCAL program from a file.
 #### Save FOCAL
@@ -49,10 +49,10 @@ The FOCAL compiler adds some syntax sugar like defining constants. The manual li
 define MyVariable 01
 define FirstLoopLabel 2
 define LoopCounter 100
-define ReadyMsg ìREADYî
-define NowMsg ì NOWî
+define ReadyMsg ‚ÄúREADY‚Äù
+define NowMsg ‚Äú NOW‚Äù
 
-LBL ìSTARTî  ;the program starts here
+LBL ‚ÄúSTART‚Äù  ;the program starts here
 LoopCounter
 STO MyVariable
 LBL FirstLoopLabel
@@ -66,7 +66,7 @@ RTN
 
 
 ### Barocode View
-![barcode view](images/ScanBarcodes.jpg)
+![barcode view](Images/ScanBarcodes.jpg)
 
 ### Debug Feature
 In case the FocalMaster cannot successfully read a barcode image file, the hidden debug feature might help you to identify and fix the problem:
@@ -75,7 +75,7 @@ In case the FocalMaster cannot successfully read a barcode image file, the hidde
 
 FocalMaster will jump the the "Barcode View" page and display the image in gray scale. Additionally all identified barcodes are marked with a red rectangle. As shown below the command "CF 29" is recognized as a barcode. Usually the FocalMaster is able to ignore none-program barcodes. But there might be cases where such barcodes are tried to read as program barcodes - which does not succeed. It can help to create a new image out of existing one but remove the identified none-program barcodes and try again.
 
-![barcode view](images/Debug.jpg)
+![barcode view](Images/Debug.jpg)
 
 ### Acknoledgment
 The FocalMaster uses the PdfSharp library from Stefan Lange, empira Software GmbH.
