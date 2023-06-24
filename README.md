@@ -44,7 +44,7 @@ Export the FOCAL to a raw file. Raw files are used by HP 41 simulators to load p
 #### Validate
 Validate the FOCAL program. The result is shown in the error window.
 
-The FOCAL compiler adds some syntax sugar like defining constants. The manual lists all details about the compiler and the recognized directives, XRom codes and statements.
+The FOCAL compiler adds some syntax sugar like defining constants. The [manual](Manual.pdf) lists all details about the compiler and the recognized directives, XRom codes and statements. Example:
 ```
 define MyVariable 01
 define FirstLoopLabel 2
