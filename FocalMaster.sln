@@ -7,9 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FocalMaster", "FocalMaster.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3342B250-FD62-4915-B811-313AE27CFD3D}"
 	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
 		Images\BarcodeView.jpg = Images\BarcodeView.jpg
 		Images\Debug.jpg = Images\Debug.jpg
 		Images\FocalSource.jpg = Images\FocalSource.jpg
+		LICENSE.txt = LICENSE.txt
 		Manual.pdf = Manual.pdf
 		README.md = README.md
 		Images\ScanBarcodes.jpg = Images\ScanBarcodes.jpg
