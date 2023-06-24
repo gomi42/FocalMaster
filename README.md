@@ -14,7 +14,7 @@ The FocalMaster is divided into 3 pages, the workflow goes from the left page to
 Here you specify all image files that belong a one program and start the scan process. The order of the files is very important. The fist page of the barcode listing must be the first file in the list and so on. Otherwise the scanner stops with a checksum error.
 
 #### Add
-Add files to the list. Drag & Drop is also supported. Please note, that Drag & Drop does not keep the order of you selection.
+Add files to the list. Drag & Drop is also supported. Please note, that Drag & Drop does not keep the order of your selection.
 #### Remove
 Remove the selected file from the list.
 #### RemoveAll
