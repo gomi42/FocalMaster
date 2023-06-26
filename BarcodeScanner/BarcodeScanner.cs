@@ -31,10 +31,10 @@ namespace FocalCompiler
 {
     internal enum ScanResult
     {
-        Ok,
-        NoBarcode,
-        NoProgramCode,
-        CheckSumError
+        NoBarcode = 0,
+        NoProgramCode = 1,
+        CheckSumError = 2,
+        Ok = 3
     }
 
     internal class BarcodeScanner
@@ -312,23 +312,20 @@ namespace FocalCompiler
 
                 if (check == ScanResult.CheckSumError)
                 {
-                    return check;
+                    return ScanResult.CheckSumError;
                 }
 
-                if (check != ScanResult.Ok)
+                if (check > lastResult)
                 {
-                    if (lastResult != ScanResult.Ok)
-                    {
-                        lastResult = check;
-                    }
-
-                    continue;
+                    lastResult = check;
                 }
 
-                lastResult = check;
-                code.AddRange(data);
-                lastCheckSum = newCheckSum;
-                currentRow++;
+                if (check == ScanResult.Ok)
+                {
+                    code.AddRange(data);
+                    lastCheckSum = newCheckSum;
+                    currentRow++;
+                }
             }
 
             programCode = code;
@@ -339,7 +336,16 @@ namespace FocalCompiler
 
         private ScanResult DecodeArea(byte[,] blacks, Rectangle area, int lastCheckSum, int currentRow, out byte[] programData, out int newCheckSum)
         {
-            ScanResult lastResult = ScanResult.Ok;
+            ScanResult lastResult = ScanResult.NoBarcode;
+
+            void SetLastResult(ScanResult newResult)
+            {
+                if (lastResult < newResult)
+                {
+                    lastResult = newResult;
+                }
+            }
+
             programData = null;
             newCheckSum = 0;
             byte[] data;
@@ -349,61 +355,37 @@ namespace FocalCompiler
 
             while (y >= area.Top && y <= area.Bottom)
             {
-                testIndex +=2;
+                testIndex += 2;
                 sign *= -1;
                 y += testIndex * sign;
 
-                var check = DecodeBarcodeRow(blacks, y, area.Left, area.Right, false, out data);
+                // first pass: try to decode normal
+                var checkResult = CheckDecodeBarcodeRow(blacks, y, area.Left, area.Right, false, lastCheckSum, out newCheckSum, out data);
+                SetLastResult(checkResult);
 
-                if (!check || data.Count() < MinProgramBarcodeLength)
+                if (checkResult == ScanResult.NoProgramCode)
                 {
-                    if (lastResult < ScanResult.NoBarcode)
-                    {
-                        lastResult = ScanResult.NoBarcode;
-                    }
-                    continue;
+                    return ScanResult.NoProgramCode;
                 }
 
-                check = CheckSum(data, lastCheckSum, out newCheckSum);
-
-                if (!check)
+                // in case of an error second pass: try to decode with wider black bars
+                if (checkResult != ScanResult.Ok)
                 {
-                    check = DecodeBarcodeRow(blacks, y, area.Left, area.Right, true, out data);
-                    
-                    if (!check)
-                    {
-                        if (lastResult < ScanResult.NoBarcode)
-                        {
-                            lastResult = ScanResult.NoBarcode;
-                        }
+                    checkResult = CheckDecodeBarcodeRow(blacks, y, area.Left, area.Right, true, lastCheckSum, out newCheckSum, out data);
+                    SetLastResult(checkResult);
 
-                        continue;
+                    if (checkResult == ScanResult.NoProgramCode)
+                    {
+                        return ScanResult.NoProgramCode;
                     }
 
-                    check = CheckSum(data, lastCheckSum, out newCheckSum);
-
-                    if (!check)
+                    if (checkResult != ScanResult.Ok)
                     {
-                        check = CheckSum(data, 0, out int _);
-
-                        if (check)
-                        {
-                            // we found a direct execution barcode, ignore it
-                            if (lastResult < ScanResult.NoBarcode)
-                            {
-                                lastResult = ScanResult.NoBarcode;
-                            }
-                        }
-                        else
-                        {
-                            lastResult = ScanResult.CheckSumError;
-                        }
-
                         continue;
                     }
                 }
 
-                check = IsProgramBarcode(data, currentRow);
+                var check = IsProgramBarcode(data, currentRow);
 
                 if (!check)
                 {
@@ -417,6 +399,39 @@ namespace FocalCompiler
             }
 
             return lastResult;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        ScanResult CheckDecodeBarcodeRow(byte[,] blacks, int row, int leftX, int rightX, bool checkWider, int lastCheckSum, out int newCheckSum, out byte[] data)
+        {
+            var check = DecodeBarcodeRow(blacks, row, leftX, rightX, checkWider, out data);
+
+            if (!check || data.Count() < MinProgramBarcodeLength)
+            {
+                newCheckSum = 0;
+                return ScanResult.NoBarcode;
+            }
+
+            check = CheckSum(data, lastCheckSum, out newCheckSum);
+
+            if (!check)
+            {
+                if (data.Length < 10)
+                {
+                    check = CheckSum(data, 0, out int _);
+
+                    if (check)
+                    {
+                        // we found a direct execution barcode, ignore it
+                        return ScanResult.NoProgramCode;
+                    }
+                }
+
+                return ScanResult.CheckSumError;
+            }
+
+            return ScanResult.Ok;
         }
 
         /////////////////////////////////////////////////////////////
