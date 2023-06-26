@@ -45,7 +45,7 @@ namespace FocalCompiler
             return bitmapSource;
         }
 
-        public static BitmapSource GetBitmapSource(byte[,] image, List<Rectangle> rects = null)
+        public static BitmapSource GetBitmapSource(byte[,] image, List<Rectangle> rects, List<ScanResult> areaResults)
         {
             var width = image.GetLength(0);
             var height = image.GetLength(1);
@@ -68,16 +68,61 @@ namespace FocalCompiler
 
             if (rects != null)
             {
-                foreach (var re in rects)
+                for (int i = 0; i < rects.Count; i++)
                 {
+                    byte red;
+                    byte green;
+                    byte blue;
+
+                    if (areaResults != null && i < areaResults.Count)
+                    {
+                        var result = areaResults[i];
+
+                        switch (result)
+                        {
+                            case ScanResult.Ok:
+                                red = 0;
+                                green = 255;
+                                blue = 0;
+                                break;
+
+                            case ScanResult.NoProgramCode:
+                                red = 255;
+                                green = 0;
+                                blue = 255;
+                                break;
+
+                            case ScanResult.CheckSumError:
+                                red = 255;
+                                green = 0;
+                                blue = 0;
+                                break;
+
+                            default:
+                                red = 0;
+                                green = 255;
+                                blue = 255;
+                                break;
+
+                        }
+                    }
+                    else
+                    {
+                        red = 0;
+                        green = 0;
+                        blue = 255;
+                    }
+
+                    var re = rects[i];
+
                     int row = re.Top;
 
                     for (int x = re.Left; x < re.Right; x++)
                     {
                         int pixelIndex = row * stride + x * 3;
-                        pixels[pixelIndex] = 0;
-                        pixels[pixelIndex + 1] = 0;
-                        pixels[pixelIndex + 2] = 255;
+                        pixels[pixelIndex] = blue;
+                        pixels[pixelIndex + 1] = green;
+                        pixels[pixelIndex + 2] = red;
                     }
 
                     row = re.Bottom;
@@ -85,9 +130,9 @@ namespace FocalCompiler
                     for (int x = re.Left; x < re.Right; x++)
                     {
                         int pixelIndex = row * stride + x * 3;
-                        pixels[pixelIndex] = 0;
-                        pixels[pixelIndex + 1] = 0;
-                        pixels[pixelIndex + 2] = 255;
+                        pixels[pixelIndex] = blue;
+                        pixels[pixelIndex + 1] = green;
+                        pixels[pixelIndex + 2] = red;
                     }
 
                     int col = re.Left;
@@ -95,9 +140,9 @@ namespace FocalCompiler
                     for (int y = re.Top; y < re.Bottom; y++)
                     {
                         int pixelIndex = y * stride + col * 3;
-                        pixels[pixelIndex] = 0;
-                        pixels[pixelIndex + 1] = 0;
-                        pixels[pixelIndex + 2] = 255;
+                        pixels[pixelIndex] = blue;
+                        pixels[pixelIndex + 1] = green;
+                        pixels[pixelIndex + 2] = red;
                     }
 
                     row = re.Right - 1;
@@ -105,9 +150,9 @@ namespace FocalCompiler
                     for (int y = re.Top; y < re.Bottom; y++)
                     {
                         int pixelIndex = y * stride + row * 3;
-                        pixels[pixelIndex] = 0;
-                        pixels[pixelIndex + 1] = 0;
-                        pixels[pixelIndex + 2] = 255;
+                        pixels[pixelIndex] = blue;
+                        pixels[pixelIndex + 1] = green;
+                        pixels[pixelIndex + 2] = red;
                     }
                 }
             }

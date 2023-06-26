@@ -71,7 +71,7 @@
     <Compile Include="BarcodeGenerator\BarcodeGenerator.cs" />
     <Compile Include="BarcodeGenerator\PdfBarcodeGenerator.cs" />
     <Compile Include="BarcodeScanner\BarcodeScanner.cs" />
-    <Compile Include="BarcodeScanner\BitmapSourceConverter.cs" />
+    <Compile Include="Helper\BitmapSourceConverter.cs" />
     <Compile Include="Compiler\CompileDirective.cs" />
     <Compile Include="Compiler\CompileMne.cs" />
     <Compile Include="Compiler\Compiler.cs" />

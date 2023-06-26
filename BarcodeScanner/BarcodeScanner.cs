@@ -37,6 +37,14 @@ namespace FocalCompiler
         Ok = 3
     }
 
+    internal class ErrorImageData
+    {
+        public string Filename;
+        public byte[,] GrayImage;
+        public List<Rectangle> BarcodeAreas;
+        public List<ScanResult> AreaResults;
+    }
+
     internal class BarcodeScanner
     {
         enum FindNextBarcodeAreaResult
@@ -52,6 +60,8 @@ namespace FocalCompiler
         /////////////////////////////////////////////////////////////
 
         public List<string> Errors { get; private set; }
+
+        public ErrorImageData ErrorImageData { get; private set; }
 
         /////////////////////////////////////////////////////////////
 
@@ -75,7 +85,7 @@ namespace FocalCompiler
                     return null;
                 }
 
-                var check = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out List<byte> code);
+                var check = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out List<byte> code, out List<ScanResult> areaResults);
 
                 if (check != ScanResult.Ok)
                 {
@@ -94,6 +104,8 @@ namespace FocalCompiler
                             break;
                     }
 
+                    ErrorImageData = new ErrorImageData { Filename = file, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
+
                     return null;
                 }
 
@@ -103,44 +115,49 @@ namespace FocalCompiler
             var decomp = new Decompiler();
             decomp.Decompile(programCode, out string focal);
 
+            ErrorImageData = null;
+
             return focal;
         }
 
         /////////////////////////////////////////////////////////////
 
-        public List<BitmapSource> Scan(Bitmap bitmap)
+        public List<BitmapSource> ScanDebug(List<string> files)
         {
             Errors = new List<string>();
             int lastCheckSum = 0;
             int currentRow = 0;
             var results = new List<BitmapSource>();
 
-            //results.Add(BitmapSourceConverter.GetBitmapSource(bitmap));
-
-            var grayImage = CreateGrayScale(bitmap);
-            //results.Add(BitmapSourceConverter.GetBitmapSource(grayImage));
-
-            var binaryImage = Binarize(grayImage);
-            var barcodeAreas = FindBarcodeAreas(binaryImage);
-            results.Add(BitmapSourceConverter.GetBitmapSource(grayImage, barcodeAreas));
-
-            var check = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out List<byte> code);
-
-            if (check != ScanResult.Ok)
+            foreach (var file in files)
             {
-                switch (check)
+                var bitmap = (Bitmap)Image.FromFile(file);
+                var grayImage = CreateGrayScale(bitmap);
+
+                var binaryImage = Binarize(grayImage);
+                var barcodeAreas = FindBarcodeAreas(binaryImage);
+
+                var check = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out _, out List<ScanResult> areaResults);
+
+                if (check != ScanResult.Ok)
                 {
-                    case ScanResult.NoBarcode:
-                        Errors.Add("No barcodes found");
-                        break;
+                    switch (check)
+                    {
+                        case ScanResult.NoBarcode:
+                            Errors.Add($"No barcodes found in {file}");
+                            break;
 
-                    case ScanResult.NoProgramCode:
-                        Errors.Add("No program barcodes found");
-                        break;
+                        case ScanResult.NoProgramCode:
+                            Errors.Add($"No program barcodes found in {file}");
+                            break;
 
-                    case ScanResult.CheckSumError:
-                        Errors.Add("Checksum error");
-                        break;
+                        case ScanResult.CheckSumError:
+                            Errors.Add($"Checksum error in {file}");
+                            break;
+                    }
+
+                    results.Add(BitmapSourceConverter.GetBitmapSource(grayImage, barcodeAreas, areaResults));
+                    return results;
                 }
             }
 
@@ -299,9 +316,10 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private ScanResult DecodeBarcodes(byte[,] blacks, List<Rectangle> barcodeAreas, ref int lastCheckSum, ref int currentRow, out List<byte> programCode)
+        private ScanResult DecodeBarcodes(byte[,] blacks, List<Rectangle> barcodeAreas, ref int lastCheckSum, ref int currentRow, out List<byte> programCode, out List<ScanResult> areaResults)
         {
             programCode = null;
+            areaResults = new List<ScanResult>();
             byte[] data;
             var code = new List<byte>();
             ScanResult lastResult = ScanResult.NoBarcode;
@@ -309,6 +327,7 @@ namespace FocalCompiler
             foreach (var area in barcodeAreas)
             {
                 var check = DecodeArea(blacks, area, lastCheckSum, currentRow, out data, out int newCheckSum);
+                areaResults.Add(check);
 
                 if (check == ScanResult.CheckSumError)
                 {

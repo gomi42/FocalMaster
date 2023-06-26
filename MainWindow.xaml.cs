@@ -30,6 +30,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using FocalCompiler;
 using FocalDecompiler;
 using FocalMaster.Helper;
@@ -214,6 +215,9 @@ namespace FocalMaster
 
         private void ButtonCreateBarcode(object sender, RoutedEventArgs e)
         {
+            MyImages.Visibility = Visibility.Collapsed;
+            MyImages.ItemsSource = null;
+            
             var generator = new DrawingVisualBarcodeGenerator();
 
             if (generator.GenerateVisual(Focal.Text, out DrawingVisual visual))
@@ -326,6 +330,9 @@ namespace FocalMaster
 
         private async void ButtonScan(object sender, RoutedEventArgs e)
         {
+            MyImages.ItemsSource = null;
+            MyImages.Visibility = Visibility.Collapsed;
+
             if ((System.Windows.Forms.Control.ModifierKeys & System.Windows.Forms.Keys.Control) == System.Windows.Forms.Keys.Control)
             {
                 TestScan();
@@ -361,6 +368,12 @@ namespace FocalMaster
             {
                 Focal.Text = string.Empty;
                 ShowErrorsScan.Text = string.Join("\n", scanner.Errors);
+
+                // the BitmapSource needs to be created in the main thread
+                var ErrorImageData = scanner.ErrorImageData;
+                var results = BitmapSourceConverter.GetBitmapSource(ErrorImageData.GrayImage, ErrorImageData.BarcodeAreas, ErrorImageData.AreaResults);
+                MyImages.ItemsSource = new List<BitmapSource> { results };
+                MyImages.Visibility = Visibility.Visible;
             }
 
             ShowScanning.Visibility = Visibility.Collapsed;
@@ -373,13 +386,13 @@ namespace FocalMaster
             if (files.Count == 0)
             {
                 MyImages.Visibility = Visibility.Collapsed;
+                MyImages.ItemsSource = null;
+                
                 return;
             }
 
             var scanner = new BarcodeScanner();
-            var barcodeBitmap = (Bitmap)Image.FromFile(files[0]);
-
-            var results = scanner.Scan(barcodeBitmap);
+            var results = scanner.ScanDebug(files);
 
             MyImages.Visibility = Visibility.Visible;
             MyTabControl.SelectedIndex = 2;
