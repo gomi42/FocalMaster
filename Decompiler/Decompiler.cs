@@ -89,7 +89,7 @@ namespace FocalDecompiler
 
         /////////////////////////////////////////////////////////////
 
-        public void Decompile (List<byte> code, out string focal)
+        public void Decompile(List<byte> code, out string focal)
         {
             MemoryStream inputStream;
             StringWriter outputStream;
@@ -192,22 +192,22 @@ namespace FocalDecompiler
 
         /////////////////////////////////////////////////////////////
 
-        private void Decompile (Stream inputStream, TextWriter outputStream)
+        private void Decompile(Stream inputStream, TextWriter outputStream)
         {
-            InitParameter ();
+            InitParameter();
 
             ///////////////////////////////
 
             int byteFromFile;
             string mnemonic;
             bool haveNextByte = false;
-            OpCodes opCodes = new FocalDecompiler.OpCodes ();
-            XRomCodes xromCodes = new XRomCodes (false);
+            OpCodes opCodes = new FocalDecompiler.OpCodes();
+            XRomCodes xromCodes = new XRomCodes(false);
 
-            string exeFilename = Assembly.GetExecutingAssembly ().Location;
-            xromCodes.AddMnemonicsFromFile (Path.Combine (Path.GetDirectoryName (exeFilename), "XRomCodes.txt"));
+            string exeFilename = Assembly.GetExecutingAssembly().Location;
+            xromCodes.AddMnemonicsFromFile(Path.Combine(Path.GetDirectoryName(exeFilename), "XRomCodes.txt"));
 
-            byteFromFile = inputStream.ReadByte ();
+            byteFromFile = inputStream.ReadByte();
 
             int[] dump = new int[50];
             int dumpidx = 0;
@@ -219,7 +219,7 @@ namespace FocalDecompiler
                     dumpidx = 0;
                     dump[dumpidx++] = byteFromFile;
 
-                    OpCodes.OpCode OpCode = opCodes.GetOpCodeInfo (byteFromFile);
+                    OpCodes.OpCode OpCode = opCodes.GetOpCodeInfo(byteFromFile);
 
                     switch (OpCode.FctType)
                     {
@@ -227,93 +227,93 @@ namespace FocalDecompiler
                             break;
 
                         case FocalDecompiler.OpCodes.FctType.NoParam:
-                            outputStream.WriteLine (OpCode.Mnemonic);
+                            outputStream.WriteLine(OpCode.Mnemonic);
                             break;
 
                         case FocalDecompiler.OpCodes.FctType.R_0_9:
+                        {
+                            string ind = string.Empty;
+
+                            byteFromFile = inputStream.ReadByte();
+                            dump[dumpidx++] = byteFromFile;
+
+                            if ((byteFromFile & 0x80) != 0)
                             {
-                                string ind = string.Empty;
-
-                                byteFromFile = inputStream.ReadByte ();
-                                dump[dumpidx++] = byteFromFile;
-
-                                if ((byteFromFile & 0x80) != 0)
-                                {
-                                    byteFromFile &= 0x7f;
-                                    ind = "IND ";
-                                }
-
-                                if (byteFromFile <= 101)
-                                    outputStream.WriteLine ("{0,-4} {1}{2}", OpCode.Mnemonic, ind, byteFromFile.ToString ("D1"));
-                                else
-                                    outputStream.WriteLine ("{0,-4} {1}{2}", OpCode.Mnemonic, ind, stackParamter[(short)byteFromFile]);
-
-                                break;
+                                byteFromFile &= 0x7f;
+                                ind = "IND ";
                             }
+
+                            if (byteFromFile <= 101)
+                                outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, byteFromFile.ToString("D1"));
+                            else
+                                outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, stackParamter[(short)byteFromFile]);
+
+                            break;
+                        }
 
                         case FocalDecompiler.OpCodes.FctType.R_0_55:
                         case FocalDecompiler.OpCodes.FctType.R_0_101_Stack:
+                        {
+                            string ind = string.Empty;
+
+                            byteFromFile = inputStream.ReadByte();
+                            dump[dumpidx++] = byteFromFile;
+
+                            if ((byteFromFile & 0x80) != 0)
                             {
-                                string ind = string.Empty;
-
-                                byteFromFile = inputStream.ReadByte ();
-                                dump[dumpidx++] = byteFromFile;
-
-                                if ((byteFromFile & 0x80) != 0)
-                                {
-                                    byteFromFile &= 0x7f;
-                                    ind = "IND ";
-                                }
-
-                                if (byteFromFile <= 101)
-                                    outputStream.WriteLine ("{0,-4} {1}{2}", OpCode.Mnemonic, ind, byteFromFile.ToString ("D2"));
-                                else
-                                    outputStream.WriteLine ("{0,-4} {1}{2}", OpCode.Mnemonic, ind, stackParamter[(short)byteFromFile]);
-
-                                break;
+                                byteFromFile &= 0x7f;
+                                ind = "IND ";
                             }
 
+                            if (byteFromFile <= 101)
+                                outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, byteFromFile.ToString("D2"));
+                            else
+                                outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, stackParamter[(short)byteFromFile]);
+
+                            break;
+                        }
+
                         case FocalDecompiler.OpCodes.FctType.R_0_15:
-                            outputStream.WriteLine ("{0,-4} {1}", OpCode.Mnemonic, (byteFromFile & 0x0F).ToString ("D2"));
+                            outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, (byteFromFile & 0x0F).ToString("D2"));
                             break;
 
                         case FocalDecompiler.OpCodes.FctType.R_0_14:
-                            outputStream.WriteLine ("{0,-4} {1}", OpCode.Mnemonic, ((byteFromFile & 0x0F) - 1).ToString ("D2"));
+                            outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, ((byteFromFile & 0x0F) - 1).ToString("D2"));
                             break;
 
                         case FocalDecompiler.OpCodes.FctType.GTO_0_14:
-                            outputStream.WriteLine ("{0,-4} {1}", OpCode.Mnemonic, ((byteFromFile & 0x0F) - 1).ToString ("D2"));
-                            byteFromFile = inputStream.ReadByte ();
+                            outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, ((byteFromFile & 0x0F) - 1).ToString("D2"));
+                            byteFromFile = inputStream.ReadByte();
                             break;
 
                         case FocalDecompiler.OpCodes.FctType.R_0_99_A_J:
-                            byteFromFile = inputStream.ReadByte ();
+                            byteFromFile = inputStream.ReadByte();
                             dump[dumpidx++] = byteFromFile;
-                            byteFromFile = inputStream.ReadByte ();
+                            byteFromFile = inputStream.ReadByte();
                             dump[dumpidx++] = byteFromFile;
 
                             byteFromFile &= 0x7F;
 
                             if (byteFromFile <= 101)
-                                outputStream.WriteLine ("{0,-4} {1}", OpCode.Mnemonic, byteFromFile.ToString ("D2"));
+                                outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, byteFromFile.ToString("D2"));
                             else
-                                outputStream.WriteLine ("{0,-4} {1}", OpCode.Mnemonic, shortLabelParamter[(short)byteFromFile]);
+                                outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, shortLabelParamter[(short)byteFromFile]);
 
                             break;
 
                         case FocalDecompiler.OpCodes.FctType.LBL_0_99_A_J:
-                            byteFromFile = inputStream.ReadByte ();
+                            byteFromFile = inputStream.ReadByte();
                             dump[dumpidx++] = byteFromFile;
 
                             if (byteFromFile <= 101)
-                                outputStream.WriteLine ("{0,-4} {1}", OpCode.Mnemonic, byteFromFile.ToString ("D2"));
+                                outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, byteFromFile.ToString("D2"));
                             else
-                                outputStream.WriteLine ("{0,-4} {1}", OpCode.Mnemonic, shortLabelParamter[(short)byteFromFile]);
+                                outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, shortLabelParamter[(short)byteFromFile]);
 
                             break;
 
                         case FocalDecompiler.OpCodes.FctType.GTO_XEQ_Ind:
-                            byteFromFile = inputStream.ReadByte ();
+                            byteFromFile = inputStream.ReadByte();
                             dump[dumpidx++] = byteFromFile;
 
                             if ((byteFromFile & 0x80) == 0)
@@ -324,166 +324,175 @@ namespace FocalDecompiler
                             byteFromFile &= 0x7f;
 
                             if (byteFromFile <= 101)
-                                outputStream.WriteLine ("{0,-4} IND {1}", mnemonic, byteFromFile.ToString ("D2"));
+                                outputStream.WriteLine("{0,-4} IND {1}", mnemonic, byteFromFile.ToString("D2"));
                             else
-                                outputStream.WriteLine ("{0,-4} IND {1}", mnemonic, stackParamter[(short)byteFromFile]);
+                                outputStream.WriteLine("{0,-4} IND {1}", mnemonic, stackParamter[(short)byteFromFile]);
 
                             break;
 
                         case FocalDecompiler.OpCodes.FctType.XRom:
-                            {
-                                int byte2;
-                                int module;
-                                int function;
-                                XRomCode xromCode;
+                        {
+                            int byte2;
+                            int module;
+                            int function;
+                            XRomCode xromCode;
 
-                                byte2 = inputStream.ReadByte ();
-                                dump[dumpidx++] = byteFromFile;
-                                module = ((byteFromFile & 0x07) << 2) | (byte2 >> 6);
-                                function = byte2 & 0x3f;
+                            byte2 = inputStream.ReadByte();
+                            dump[dumpidx++] = byteFromFile;
+                            module = ((byteFromFile & 0x07) << 2) | (byte2 >> 6);
+                            function = byte2 & 0x3f;
 
-                                if (xromCodes.FindFunction (module, function, out xromCode))
-                                    outputStream.WriteLine ("{0}", xromCode.Mnemonic);
-                                else
-                                    outputStream.WriteLine ("{0,-4} {1},{2}", OpCode.Mnemonic, module.ToString ("D2"), function.ToString ("D2"));
-                                break;
-                            }
+                            if (xromCodes.FindFunction(module, function, out xromCode))
+                                outputStream.WriteLine("{0}", xromCode.Mnemonic);
+                            else
+                                outputStream.WriteLine("{0,-4} {1},{2}", OpCode.Mnemonic, module.ToString("D2"), function.ToString("D2"));
+                            break;
+                        }
 
                         case FocalDecompiler.OpCodes.FctType.LabelAlpha:
+                        {
+                            int len;
+                            string label = string.Empty;
+
+                            var chain = inputStream.ReadByte();
+                            dump[dumpidx++] = chain;
+
+                            len = inputStream.ReadByte();
+                            dump[dumpidx++] = len;
+
+                            var keyAssignment = inputStream.ReadByte();
+                            dump[dumpidx++] = keyAssignment;
+
+                            if ((len & 0xF0) == 0xF0)
                             {
-                                int len;
-                                string label = string.Empty;
-
-                                var chain  = inputStream.ReadByte ();
-                                dump[dumpidx++] = chain;
-
-                                len = inputStream.ReadByte ();
-                                dump[dumpidx++] = len;
-
-                                var keyAssignment = inputStream.ReadByte ();
-                                dump[dumpidx++] = keyAssignment;
-
-                                if (len != 0x2F)
-                                {
-                                    len -= 0xf1;
-
-                                    while (len-- > 0)
-                                    {
-                                        byteFromFile = inputStream.ReadByte ();
-                                        dump[dumpidx++] = byteFromFile;
-                                        label += (char)byteFromFile;
-                                    }
-
-                                    outputStream.WriteLine ("{0,-4} \"{1}\"", OpCode.Mnemonic, label);
-                                }
-                                else
-                                    outputStream.WriteLine ("END");
-
-                                break;
-                            }
-
-                        case FocalDecompiler.OpCodes.FctType.GTO_XEQ_Alpha:
-                            {
-                                int Len;
-                                string label = string.Empty;
-
-                                Len = inputStream.ReadByte () - 0xf0;
-                                dump[dumpidx++] = byteFromFile;
-
-                                while (Len-- > 0)
-                                {
-                                    byteFromFile = inputStream.ReadByte ();
-                                    dump[dumpidx++] = byteFromFile;
-                                    label += (char)byteFromFile;
-                                }
-
-                                outputStream.WriteLine ("{0,-4} \"{1}\"", OpCode.Mnemonic, label);
-                                break;
-                            }
-
-                        case FocalDecompiler.OpCodes.FctType.Alpha:
-                            {
-                                int len;
-                                string label = string.Empty;
-                                string append = string.Empty;
-
-                                len = byteFromFile & 0x0f;
-                                byteFromFile = inputStream.ReadByte ();
-                                dump[dumpidx++] = byteFromFile;
-
-                                if (byteFromFile == 0x7f) //append
-                                {
-                                    append = ">";
-                                    byteFromFile = inputStream.ReadByte ();
-                                    dump[dumpidx++] = byteFromFile;
-                                    len--;
-                                }
+                                len = (len & 0x0F) - 1;
 
                                 while (len-- > 0)
                                 {
-                                    label += (char)byteFromFile;
-                                    byteFromFile = inputStream.ReadByte ();
+                                    byteFromFile = inputStream.ReadByte();
                                     dump[dumpidx++] = byteFromFile;
+                                    label += (char)byteFromFile;
                                 }
 
-                                outputStream.WriteLine ("{0}\"{1}\"", append, label);
-                                haveNextByte = true;
-                                break;
+                                outputStream.WriteLine("{0,-4} \"{1}\"", OpCode.Mnemonic, label);
                             }
+                            else
+                            {
+                                if ((len & 0x20) != 0)
+                                {
+                                    outputStream.WriteLine(".END.");
+                                }
+                                else
+                                {
+                                    outputStream.WriteLine("END");
+                                }
+                            }
+
+                            break;
+                        }
+
+                        case FocalDecompiler.OpCodes.FctType.GTO_XEQ_Alpha:
+                        {
+                            int Len;
+                            string label = string.Empty;
+
+                            Len = inputStream.ReadByte() - 0xf0;
+                            dump[dumpidx++] = byteFromFile;
+
+                            while (Len-- > 0)
+                            {
+                                byteFromFile = inputStream.ReadByte();
+                                dump[dumpidx++] = byteFromFile;
+                                label += (char)byteFromFile;
+                            }
+
+                            outputStream.WriteLine("{0,-4} \"{1}\"", OpCode.Mnemonic, label);
+                            break;
+                        }
+
+                        case FocalDecompiler.OpCodes.FctType.Alpha:
+                        {
+                            int len;
+                            string label = string.Empty;
+                            string append = string.Empty;
+
+                            len = byteFromFile & 0x0f;
+                            byteFromFile = inputStream.ReadByte();
+                            dump[dumpidx++] = byteFromFile;
+
+                            if (byteFromFile == 0x7f) //append
+                            {
+                                append = ">";
+                                byteFromFile = inputStream.ReadByte();
+                                dump[dumpidx++] = byteFromFile;
+                                len--;
+                            }
+
+                            while (len-- > 0)
+                            {
+                                label += (char)byteFromFile;
+                                byteFromFile = inputStream.ReadByte();
+                                dump[dumpidx++] = byteFromFile;
+                            }
+
+                            outputStream.WriteLine("{0}\"{1}\"", append, label);
+                            haveNextByte = true;
+                            break;
+                        }
 
                         case FocalDecompiler.OpCodes.FctType.Number:
                             do
                             {
                                 if (byteFromFile == 0x1b)
-                                    outputStream.Write ("E");
+                                    outputStream.Write("E");
                                 else
                                     if (byteFromFile == 0x1a)
-                                        outputStream.Write (".");
-                                    else
+                                    outputStream.Write(".");
+                                else
                                         if (byteFromFile == 0x1c)
-                                            outputStream.Write ("-");
-                                        else
-                                            outputStream.Write ("{0}", (char)(byteFromFile - 0x10 + '0'));
+                                    outputStream.Write("-");
+                                else
+                                    outputStream.Write("{0}", (char)(byteFromFile - 0x10 + '0'));
 
-                                byteFromFile = inputStream.ReadByte ();
+                                byteFromFile = inputStream.ReadByte();
                                 dump[dumpidx++] = byteFromFile;
-                                OpCode = opCodes.GetOpCodeInfo (byteFromFile);
+                                OpCode = opCodes.GetOpCodeInfo(byteFromFile);
                             }
                             while (OpCode.FctType == FocalDecompiler.OpCodes.FctType.Number);
 
-                            outputStream.WriteLine ();
+                            outputStream.WriteLine();
                             haveNextByte = true;
                             break;
 
                         default:
-                            outputStream.WriteLine ("? {0}", byteFromFile.ToString ("X2"));
+                            outputStream.WriteLine("? {0}", byteFromFile.ToString("X2"));
                             break;
                     }
 
                     if (!haveNextByte)
                     {
-                        byteFromFile = inputStream.ReadByte ();
+                        byteFromFile = inputStream.ReadByte();
                         dump[dumpidx++] = byteFromFile;
                     }
 
                     haveNextByte = false;
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Console.Write ("Exception caught on statement: ");
+                Console.Write("Exception caught on statement: ");
 
                 for (int i = 0; i < dumpidx; i++)
                 {
-                    Console.Write ("{0} ", dump[i]);
+                    Console.Write("{0} ", dump[i]);
                 }
 
-                Console.WriteLine ();
+                Console.WriteLine();
             }
 
 
-            inputStream.Close ();
-            outputStream.Close ();
+            inputStream.Close();
+            outputStream.Close();
         }
     }
 }
