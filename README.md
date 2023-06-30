@@ -1,6 +1,6 @@
 # Focal Master
-FOCAL means "Forty One Calculator Language" and is the programming language of the famous HP 41 calculator. The FocalMaster lets you
-- scan barcode files and convert them to a readable FOCAL program
+The FocalMaster lets you
+- scan barcode files and convert them to a readable HP-41 FOCAL program
 - create barcodes as PDF or JPF files or for display on the screen
 - edit the FOCAL program
 - import a raw file and convert it to a readable FOCAL program
@@ -11,7 +11,7 @@ The FocalMaster is divided into 3 pages, the workflow goes from the left page to
 ### Scan Barcodes
 ![scan barcodes](Images/ScanBarcodes.jpg)
 
-Here you specify all image files that belong a one program and start the scan process. The order of the files is very important. The fist page of the barcode listing must be the first file in the list and so on. Otherwise the scanner stops with a checksum error.
+Here you specify all image files that belong a one program and start the scan process. The order of the files is very important. The fist page of the barcode listing must be the first file in the list and so on. Otherwise the scanner stops with a checksum error. In case of an error the appropriate image is shown in the "Barcode View" page and the barcodes are marked with a color code. Please refer to the "Barcode View" page for more information.
 
 #### Add
 Add files to the list. Drag & Drop is also supported. Please note, that Drag & Drop does not keep the order of your selection.
@@ -67,16 +67,28 @@ RTN
 
 
 ### Barcode View
-![barcode view](Images/BarcodeView.jpg)
 
 The "Barcode View" displays the full FOCAL program as barcodes. It still needs to be tested whether the Wand can directly read barcodes from the screen.
 
+![barcode view](Images/BarcodeView.jpg)
+
+In case of errors this page shows the problematic image and the barcodes are marked with a color code:
+
+- **green**: successfully scanned barcode
+- **red**: checksum error
+- **magenta**: no program barcode, is ignored
+- **cyan**: potential barcode detected but ignored after final evaluation
+- **blue**: potential barcode detected but not yet evaluated (the first checksum error aborts the evaluation of all following potential barcodes)
+
+![barcode view](Images/Error.jpg)
+
 ### Debug Feature
-In case the FocalMaster cannot successfully read a barcode image file, the hidden debug feature might help you to identify and fix the problem:
-- the debug features works only on the first file of the list, move the problematic file to the top of the list
+In case you are interested in the detailed evaluation of all barcodes on all pages, use the debug feature:
 - click "Scan" while holding the CTRL key on the keyboard
 
-FocalMaster will jump the the "Barcode View" page and display the image in gray scale. Additionally all identified barcodes are marked with a red rectangle. As shown below the command "CF 29" is recognized as a barcode. Usually the FocalMaster is able to ignore none-program barcodes. But there might be cases where such barcodes are tried to read as program barcodes - which does not succeed. It can help to create a new image out of existing one but remove the identified none-program barcodes and try again.
+FocalMaster analyzes all images, the process does not stop at the first occurence of an error. When finished FocalMaster jumps to the "Barcode View" page and displays all images (in gray scale) and all barcodes are marked with a color code.
+
+As shown below the command "CF 29" is recognized as a barcode but ignored because its not a program barcode. Usually the FocalMaster is able to ignore none-program barcodes. But there might be cases where such barcodes are wrongly tried to read as program barcodes - which won't succeed. It can help to create a new image out of existing one but remove the identified none-program barcodes and try again.
 
 ![barcode view](Images/Debug.jpg)
 

@@ -379,7 +379,7 @@ namespace FocalMaster
             ShowScanning.Visibility = Visibility.Collapsed;
         }
 
-        private void TestScan()
+        private async void TestScan()
         {
             var files = ((IEnumerable<string>)BarcodeFiles.ItemsSource).ToList();
 
@@ -391,14 +391,25 @@ namespace FocalMaster
                 return;
             }
 
+            ShowScanning.Visibility = Visibility.Visible;
+
             var scanner = new BarcodeScanner();
-            var results = scanner.ScanDebug(files);
+            var results = await Task.Run(() => scanner.ScanDebug(files));
+
+            var bitmaps = new List<BitmapSource>();
+
+            foreach (var imageData in results)
+            {
+                bitmaps.Add(BitmapSourceConverter.GetBitmapSource(imageData.GrayImage, imageData.BarcodeAreas, imageData.AreaResults));
+            }
 
             MyImages.Visibility = Visibility.Visible;
             MyTabControl.SelectedIndex = 2;
             ShowErrorsScan.Text = string.Join("\n", scanner.Errors);
 
-            MyImages.ItemsSource = results;
+            MyImages.ItemsSource = bitmaps;
+
+            ShowScanning.Visibility = Visibility.Collapsed;
         }
     }
 }

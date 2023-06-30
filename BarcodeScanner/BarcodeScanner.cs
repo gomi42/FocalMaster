@@ -122,12 +122,12 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        public List<BitmapSource> ScanDebug(List<string> files)
+        public List<ErrorImageData> ScanDebug(List<string> files)
         {
             Errors = new List<string>();
             int lastCheckSum = 0;
             int currentRow = 0;
-            var results = new List<BitmapSource>();
+            var results = new List<ErrorImageData>();
 
             foreach (var file in files)
             {
@@ -138,6 +138,8 @@ namespace FocalCompiler
                 var barcodeAreas = FindBarcodeAreas(binaryImage);
 
                 var check = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out _, out List<ScanResult> areaResults);
+                var imageData = new ErrorImageData { Filename = file, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
+                results.Add(imageData);
 
                 if (check != ScanResult.Ok)
                 {
@@ -155,9 +157,6 @@ namespace FocalCompiler
                             Errors.Add($"Checksum error in {file}");
                             break;
                     }
-
-                    results.Add(BitmapSourceConverter.GetBitmapSource(grayImage, barcodeAreas, areaResults));
-                    return results;
                 }
             }
 
@@ -243,7 +242,7 @@ namespace FocalCompiler
                 return FindNextBarcodeAreaResult.AreaTooSmall;
             }
 
-            result = new Rectangle(minX, startY, maxX - minX + 1, lastBlackY - startY);
+            result = new Rectangle(minX, startY, maxX - minX, lastBlackY - startY);
             return FindNextBarcodeAreaResult.Ok;
         }
 
