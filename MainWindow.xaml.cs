@@ -45,7 +45,10 @@ namespace FocalMaster
         public MainWindow()
         {
             InitializeComponent();
-            BarcodeFiles.ItemsSource = new List<string>();
+            var list = new List<string>();
+            list.Add(@"D:\Rechner\Taschenrechner\HP-41\Wand\Manual\34.jpg");
+            BarcodeFiles.ItemsSource = list;
+            
 
             System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
             FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
@@ -142,7 +145,7 @@ namespace FocalMaster
             var selectedIndex = BarcodeFiles.SelectedIndex;
             var files = BarcodeFiles.ItemsSource.Cast<string>().ToList();
 
-            if (selectedIndex >= files.Count - 1)
+            if (selectedIndex < 0 || selectedIndex >= files.Count - 1)
             {
                 return;
             }
@@ -370,14 +373,26 @@ namespace FocalMaster
                 ShowErrorsScan.Text = string.Join("\n", scanner.Errors);
 
                 // the BitmapSource needs to be created in the main thread
-                var ErrorImageData = scanner.ErrorImageData;
-                var results = BitmapSourceConverter.GetBitmapSource(ErrorImageData.GrayImage, ErrorImageData.BarcodeAreas, ErrorImageData.AreaResults);
-                MyImages.ItemsSource = new List<BitmapSource> { results };
+                var errorImageData = scanner.ErrorImageData;
+
+                if (errorImageData != null)
+                {
+                    var results = BitmapSourceConverter.GetBitmapSource(errorImageData.GrayImage, errorImageData.BarcodeAreas, errorImageData.AreaResults);
+                    MyImages.ItemsSource = new List<BitmapSource> { results };
+                }
+
                 MyImages.Visibility = Visibility.Visible;
             }
 
             ShowScanning.Visibility = Visibility.Collapsed;
         }
+
+#if DEBUG
+        private async void ButtonScan2(object sender, RoutedEventArgs e)
+        {
+            TestScan();
+        }
+#endif
 
         private async void TestScan()
         {
@@ -393,8 +408,19 @@ namespace FocalMaster
 
             ShowScanning.Visibility = Visibility.Visible;
 
+            List<ErrorImageData> results;
             var scanner = new BarcodeScanner();
-            var results = await Task.Run(() => scanner.ScanDebug(files));
+
+#if DEBUG
+            if ((System.Windows.Forms.Control.ModifierKeys & System.Windows.Forms.Keys.Shift) == System.Windows.Forms.Keys.Shift)
+            {
+                results = await Task.Run(() => scanner.ScanDebugBoxes(files));
+            }
+            else
+#endif
+            {
+                results = await Task.Run(() => scanner.ScanDebug(files));
+            }
 
             var bitmaps = new List<BitmapSource>();
 

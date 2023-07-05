@@ -21,10 +21,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing.Imaging;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
-using System.Windows.Media.Imaging;
 using FocalDecompiler;
 
 namespace FocalCompiler
@@ -34,7 +33,7 @@ namespace FocalCompiler
         NoBarcode = 0,
         NoProgramCode = 1,
         CheckSumError = 2,
-        Ok = 3
+        ProgramCode = 3
     }
 
     internal class ErrorImageData
@@ -47,15 +46,13 @@ namespace FocalCompiler
 
     internal class BarcodeScanner
     {
-        enum FindNextBarcodeAreaResult
-        {
-            Ok,
-            NoBarcode,
-            AreaTooSmall
-        }
+        private const int ProgramBarcodeHeaderLength = 3;
+        private const int MinProgramBarcodeLength = ProgramBarcodeHeaderLength + 1;
 
-        const int ProgramBarcodeHeaderLength = 3;
-        const int MinProgramBarcodeLength = ProgramBarcodeHeaderLength + 1;
+        private const int MinBoxSize = 6;
+        private const int MaxBoxSize = 20;
+
+        private int boxSize = MinBoxSize;
 
         /////////////////////////////////////////////////////////////
 
@@ -77,19 +74,28 @@ namespace FocalCompiler
                 var bitmap = (Bitmap)Image.FromFile(file);
                 var grayImage = CreateGrayScale(bitmap);
                 var binaryImage = Binarize(grayImage);
-                var barcodeAreas = FindBarcodeAreas(binaryImage);
+                (var edgeX, var edgeY) = GetEdges(binaryImage);
 
-                if (barcodeAreas.Count == 0)
+                boxSize = MinBoxSize;
+                ScanResult scanResult;
+                List<Rectangle> barcodeAreas;
+                List<ScanResult> areaResults;
+                List<byte> code;
+
+                do
                 {
-                    Errors.Add($"No barcodes found in {file}");
-                    return null;
+                    var boxes = FindBoxes(edgeX, edgeY);
+                    barcodeAreas = CombineBoxesToAreas(boxes);
+
+                    scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out code, out areaResults);
+
+                    boxSize += 1;
                 }
+                while (boxSize < MaxBoxSize && scanResult == ScanResult.NoBarcode);
 
-                var check = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out List<byte> code, out List<ScanResult> areaResults);
-
-                if (check != ScanResult.Ok)
+                if (scanResult != ScanResult.ProgramCode)
                 {
-                    switch (check)
+                    switch (scanResult)
                     {
                         case ScanResult.NoBarcode:
                             Errors.Add($"No barcodes found in {file}");
@@ -133,17 +139,31 @@ namespace FocalCompiler
             {
                 var bitmap = (Bitmap)Image.FromFile(file);
                 var grayImage = CreateGrayScale(bitmap);
-
                 var binaryImage = Binarize(grayImage);
-                var barcodeAreas = FindBarcodeAreas(binaryImage);
+                (var edgeX, var edgeY) = GetEdges(binaryImage);
 
-                var check = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out _, out List<ScanResult> areaResults);
+                boxSize = MinBoxSize;
+                ScanResult scanResult;
+                List<Rectangle> barcodeAreas;
+                List<ScanResult> areaResults;
+
+                do
+                {
+                    var boxes = FindBoxes(edgeX, edgeY);
+                    barcodeAreas = CombineBoxesToAreas(boxes);
+
+                    scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out _, out areaResults);
+
+                    boxSize += 1;
+                }
+                while (boxSize <= MaxBoxSize && scanResult == ScanResult.NoBarcode);
+
                 var imageData = new ErrorImageData { Filename = file, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
                 results.Add(imageData);
 
-                if (check != ScanResult.Ok)
+                if (scanResult != ScanResult.ProgramCode)
                 {
-                    switch (check)
+                    switch (scanResult)
                     {
                         case ScanResult.NoBarcode:
                             Errors.Add($"No barcodes found in {file}");
@@ -165,152 +185,297 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private List<Rectangle> FindBarcodeAreas(byte[,] blacks)
+        public List<ErrorImageData> ScanDebugBoxes(List<string> files)
         {
-            var results = new List<Rectangle>();
-            var height = blacks.GetLength(1);
-            int y = 0;
+            Errors = new List<string>();
+            var results = new List<ErrorImageData>();
 
-            while (y < height)
-            {
-                var ret = FindNextBarcodeArea(blacks, y, out Rectangle rect);
+            var file = files[0];
 
-                if (ret == FindNextBarcodeAreaResult.NoBarcode)
-                {
-                    y++;
-                    continue;
-                }
+            var bitmap = (Bitmap)Image.FromFile(file);
+            var grayImage = CreateGrayScale(bitmap);
+            var binaryImage = Binarize(grayImage);
+            (var edgeX, var edgeY) = GetEdges(binaryImage);
 
-                if (ret == FindNextBarcodeAreaResult.Ok)
-                {
-                    results.Add(rect);
-                }
+            boxSize = MinBoxSize;
+            var boxes = FindBoxes(edgeX, edgeY);
+            var areas = CombineBoxesToAreas(boxes);
 
-                y = rect.Bottom + 1;
-            }
+            var imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
+            results.Add(imageData);
+
+            areas = CreateBoxAreas(boxes);
+            imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
+            results.Add(imageData);
 
             return results;
         }
 
         /////////////////////////////////////////////////////////////
 
-        private FindNextBarcodeAreaResult FindNextBarcodeArea(byte[,] blacks, int startY, out Rectangle result)
+        private bool[,] FindBoxes(byte[,] edgeX, byte[,] edgeY)
         {
-            var width = blacks.GetLength(0);
-            var height = blacks.GetLength(1);
-            int minX;
-            int maxX;
+            const int EdgeThreshold = 100;
+            const double VerticalHorizontalRatio = 2.7;
 
-            if (!IsPlausibleBarcodeRow(blacks, startY, out minX, out maxX))
+            var width = edgeX.GetLength(0);
+            var height = edgeX.GetLength(1);
+            int xBoxes = width / boxSize;
+            int yBoxes = height / boxSize;
+            var boxes = new bool[xBoxes, yBoxes];
+
+            for (int boxY = 0; boxY < yBoxes; boxY++)
             {
-                result = default;
-                return FindNextBarcodeAreaResult.NoBarcode;
-            }
+                int boxPixelStartY = boxY * boxSize;
 
-            int lastBlackY = startY + 1;
-
-            for (int y = lastBlackY; y < height; y++)
-            {
-                if (!IsPlausibleBarcodeRow(blacks, y, out int firstX, out int lastX))
+                for (int boxX = 0; boxX < xBoxes; boxX++)
                 {
-                    // allow 3 pixel rows within a barcode to be unreadble, that can 
-                    // be caused by rounding of the binarizer
-                    if (y > lastBlackY + 3)
+                    int boxPixelStartX = boxX * boxSize;
+                    int sumX = 0;
+                    int sumY = 0;
+
+                    for (int yBoxPixel = boxPixelStartY; yBoxPixel < boxPixelStartY + boxSize; yBoxPixel++)
                     {
-                        break;
+                        for (int xBoxPixel = boxPixelStartX; xBoxPixel < boxPixelStartX + boxSize; xBoxPixel++)
+                        {
+                            if (edgeX[xBoxPixel, yBoxPixel] > EdgeThreshold)
+                            {
+                                sumX++;
+                            }
+
+                            if (edgeY[xBoxPixel, yBoxPixel] > EdgeThreshold)
+                            {
+                                sumY++;
+                            }
+                        }
+                    }
+
+                    if (sumX >= boxSize && sumX > sumY * VerticalHorizontalRatio)
+                    {
+                        boxes[boxX, boxY] = true;
                     }
                 }
-                else
-                {
-                    lastBlackY = y;
-
-                    if (firstX < minX)
-                    {
-                        minX = firstX;
-                    }
-
-                    if (lastX > maxX)
-                    {
-                        maxX = lastX;
-                    }
-                }
             }
 
-            if (lastBlackY - startY < 10)
-            {
-                result = new Rectangle(0, startY, width, lastBlackY - startY);
-                return FindNextBarcodeAreaResult.AreaTooSmall;
-            }
-
-            result = new Rectangle(minX, startY, maxX - minX, lastBlackY - startY);
-            return FindNextBarcodeAreaResult.Ok;
+            return boxes;
         }
 
         /////////////////////////////////////////////////////////////
 
-        private bool IsPlausibleBarcodeRow(byte[,] blacks, int startY, out int firstX, out int lastX)
+        private List<Rectangle> CombineBoxesToAreas(bool[,] boxes)
         {
-            var width = blacks.GetLength(0);
-            int firstBlackX = -1;
+            const int MinBoxesHeight = 3;
+            const int MinBoxesWidth = 5;
 
-            // find left-most black pixel of that row
-            for (int x = 0; x < width; x++)
+            var areas = new List<Rectangle>();
+            var width = boxes.GetLength(0);
+            var height = boxes.GetLength(1);
+            bool[,] visited = new bool[width, height];
+
+            int minX;
+            int maxX;
+            int minY;
+            int maxY;
+
+            ///////////////////////////////////
+
+            bool FindNextXY(int startFindX, int startFindY, int yToStartXAt0, out int foundX, out int foundY)
             {
-                if (blacks[x, startY] == 0)
+                foundX = -1;
+                foundY = -1;
+
+                while (startFindY < height)
                 {
-                    firstBlackX = x;
-                    break;
-                }
-            }
+                    foundX = -1;
 
-            if (firstBlackX == -1)
-            {
-                firstX = 0;
-                lastX = 0;
+                    for (int x = startFindX; x < width; x++)
+                    {
+                        if (boxes[x, startFindY] && !visited[x, startFindY])
+                        {
+                            foundX = x;
+                            break;
+                        }
+                    }
+
+                    if (foundX > 0)
+                    {
+                        foundY = startFindY;
+                        return true;
+                    }
+
+                    startFindY++;
+
+                    if (startFindY > yToStartXAt0)
+                    {
+                        startFindX = 0;
+                    }
+                }
+
                 return false;
             }
 
-            // find right-most black pixel
-            int lastBlackX = width - 1;
+            ///////////////////////////////////
 
-            while (lastBlackX > firstBlackX)
+            void DetermineArea(int areaX, int areaY)
             {
-                if (blacks[lastBlackX, startY] == 0)
+                if (areaX < 0 || areaX >= width || areaY < 0 || areaY >= height)
                 {
-                    break;
+                    return;
                 }
 
-                lastBlackX--;
-            }
-
-            if (firstBlackX == lastBlackX)
-            {
-                firstX = 0;
-                lastX = 0;
-                return false;
-            }
-
-            // determine the number of black and white pixels
-            int numWhite = 0;
-            int numBlack = 0;
-
-            for (int x = firstBlackX; x <= lastBlackX; x++)
-            {
-                if (blacks[x, startY] == 0)
+                if (visited[areaX, areaY])
                 {
-                    numBlack++;
+                    return;
+                }
+
+                visited[areaX, areaY] = true;
+
+                if (!boxes[areaX, areaY])
+                {
+                    return;
+                }
+
+                if (areaX < minX)
+                    minX = areaX;
+
+                if (areaX > maxX)
+                    maxX = areaX;
+
+                if (areaY < minY)
+                    minY = areaY;
+
+                if (areaY > maxY)
+                    maxY = areaY;
+
+                DetermineArea(areaX - 1, areaY);
+                DetermineArea(areaX + 1, areaY);
+                DetermineArea(areaX, areaY + 1);
+                DetermineArea(areaX, areaY - 1);
+
+                return;
+            }
+
+            ///////////////////////////////////
+
+            bool IsNumberOfBoxesInRange(int testY, int minAreaWidth)
+            {
+                int count = 0;
+                    
+                for (int x = minX; x <= maxX; x++)
+                {
+                    if (boxes[x, testY])
+                    {
+                        count++;
+                    }
+                }
+
+                if (count < minAreaWidth)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            ///////////////////////////////////
+
+            void ShrinkArea()
+            {
+                var minBoxesInRow = ((maxX - minX + 1) * 8) / 10;
+
+                while (!IsNumberOfBoxesInRange(minY, minBoxesInRow) && minY <= maxY - 2)
+                {
+                    minY++;
+                }
+
+                while (!IsNumberOfBoxesInRange(maxY, minBoxesInRow) && maxY >= minY + 2)
+                {
+                    maxY--;
+                }
+            }
+
+            ///////////////////////////////////
+
+            void SplitArea()
+            {
+                var minBoxesInRow = (maxX - minX + 1) / 7;
+                int areaStartY = minY;
+                int areaEndY;
+
+                while (areaStartY < maxY)
+                {
+                    areaEndY = areaStartY;
+
+                    do
+                    {
+                        areaEndY++;
+                    }
+                    while (areaEndY <= maxY && IsNumberOfBoxesInRange(areaEndY, minBoxesInRow));
+
+                    areaEndY--;
+
+                    if ((areaEndY - areaStartY + 1) >= MinBoxesHeight)
+                    {
+                        var re = new Rectangle(minX * boxSize, areaStartY * boxSize, (maxX - minX) * boxSize + boxSize, (areaEndY - areaStartY) * boxSize + boxSize);
+                        areas.Add(re);
+                    }
+
+                    do
+                    {
+                        areaEndY++;
+                    }
+                    while (areaEndY <= maxY && !IsNumberOfBoxesInRange(areaEndY, minBoxesInRow));
+
+                    areaStartY = areaEndY;
+                }
+            }
+
+            ///////////////////////////////////
+
+            int y = 0;
+            int lastMaxX = 0;
+            int lastMaxY = 0;
+
+            while (y < height)
+            {
+                if (!FindNextXY(lastMaxX, y, lastMaxY, out int foundX, out int foundY))
+                {
+                    y++;
+                    continue;
+                }
+
+                minX = int.MaxValue;
+                maxX = int.MinValue;
+                minY = int.MaxValue;
+                maxY = int.MinValue;
+
+                DetermineArea(foundX, foundY);
+
+                if (minX < int.MaxValue)
+                {
+                    if ((maxX - minX + 1) >= MinBoxesWidth && (maxY - minY + 1) >= MinBoxesHeight)
+                    {
+                        ShrinkArea();
+
+                        if ((maxY - minY + 1) >= MinBoxesHeight)
+                        {
+                            SplitArea();
+                        }
+                    }
+
+                    y = foundY;
+                    lastMaxX = maxX;
+                    lastMaxY = maxY;
                 }
                 else
                 {
-                    numWhite++;
+                    y++;
+                    lastMaxX = 0;
+                    lastMaxY = 0;
                 }
-
             }
 
-            firstX = firstBlackX;
-            lastX = lastBlackX;
-
-            return numWhite > 10 && numBlack >= numWhite;
+            return areas;
         }
 
         /////////////////////////////////////////////////////////////
@@ -325,20 +490,20 @@ namespace FocalCompiler
 
             foreach (var area in barcodeAreas)
             {
-                var check = DecodeArea(blacks, area, lastCheckSum, currentRow, out data, out int newCheckSum);
-                areaResults.Add(check);
+                var scanResult = DecodeArea(blacks, area, lastCheckSum, currentRow, out data, out int newCheckSum);
+                areaResults.Add(scanResult);
 
-                if (check == ScanResult.CheckSumError)
+                if (scanResult == ScanResult.CheckSumError)
                 {
                     return ScanResult.CheckSumError;
                 }
 
-                if (check > lastResult)
+                if (scanResult > lastResult)
                 {
-                    lastResult = check;
+                    lastResult = scanResult;
                 }
 
-                if (check == ScanResult.Ok)
+                if (scanResult == ScanResult.ProgramCode)
                 {
                     code.AddRange(data);
                     lastCheckSum = newCheckSum;
@@ -373,7 +538,7 @@ namespace FocalCompiler
 
             while (y >= area.Top && y <= area.Bottom)
             {
-                testIndex += 2;
+                testIndex += 1;
                 sign *= -1;
                 y += testIndex * sign;
 
@@ -387,7 +552,7 @@ namespace FocalCompiler
                 }
 
                 // in case of an error second pass: try to decode with wider black bars
-                if (checkResult != ScanResult.Ok)
+                if (checkResult != ScanResult.ProgramCode)
                 {
                     checkResult = CheckDecodeBarcodeRow(blacks, y, area.Left, area.Right, true, lastCheckSum, out newCheckSum, out data);
                     SetLastResult(checkResult);
@@ -397,7 +562,7 @@ namespace FocalCompiler
                         return ScanResult.NoProgramCode;
                     }
 
-                    if (checkResult != ScanResult.Ok)
+                    if (checkResult != ScanResult.ProgramCode)
                     {
                         continue;
                     }
@@ -413,7 +578,7 @@ namespace FocalCompiler
                 programData = new byte[data.Length - ProgramBarcodeHeaderLength];
                 Array.Copy(data, ProgramBarcodeHeaderLength, programData, 0, data.Length - ProgramBarcodeHeaderLength);
 
-                return ScanResult.Ok;
+                return ScanResult.ProgramCode;
             }
 
             return lastResult;
@@ -449,7 +614,7 @@ namespace FocalCompiler
                 return ScanResult.CheckSumError;
             }
 
-            return ScanResult.Ok;
+            return ScanResult.ProgramCode;
         }
 
         /////////////////////////////////////////////////////////////
@@ -654,21 +819,21 @@ namespace FocalCompiler
 
         private bool CheckSum(byte[] bytes, int lastCheckSum, out int newcheckSum)
         {
-            int check = lastCheckSum;
+            int checkSum = lastCheckSum;
 
             for (int i = 1; i < bytes.Length; i++)
             {
-                check += bytes[i];
+                checkSum += bytes[i];
 
-                if (check > 0xFF)
+                if (checkSum > 0xFF)
                 {
-                    check -= 0xFF;
+                    checkSum -= 0xFF;
                 }
             }
 
-            newcheckSum = check;
+            newcheckSum = checkSum;
 
-            return check == bytes[0];
+            return checkSum == bytes[0];
         }
 
         /////////////////////////////////////////////////////////////
@@ -699,8 +864,7 @@ namespace FocalCompiler
                 }
             }
 
-            double f = 0.5;
-            byte threshold = (byte)((max - min) * f);
+            byte threshold = (byte)((max - min) * 0.5);
 
             for (int x = 0; x < width; x++)
             {
@@ -739,13 +903,13 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private unsafe byte GetPixelBrightness(byte* pixelArray, System.Drawing.Imaging.PixelFormat pixelFormat, int stride, int x, int y)
+        private unsafe byte GetPixelBrightness(byte* pixelArray, PixelFormat pixelFormat, int stride, int x, int y)
         {
             byte brightness = 0;
 
             switch (pixelFormat)
             {
-                case System.Drawing.Imaging.PixelFormat.Format1bppIndexed:
+                case PixelFormat.Format1bppIndexed:
                 {
                     byte pixel = pixelArray[(y * stride) + (x >> 3)];
 
@@ -759,7 +923,7 @@ namespace FocalCompiler
 
                 default: // 24bpp RGB, 32bpp formats
                 {
-                    int pixelIndex = (y * stride) + (x * (pixelFormat == System.Drawing.Imaging.PixelFormat.Format24bppRgb ? 3 : 4));
+                    int pixelIndex = (y * stride) + (x * (pixelFormat == PixelFormat.Format24bppRgb ? 3 : 4));
                     ushort sum = 0;
 
                     for (int i = pixelIndex; i < pixelIndex + 3; i++)
@@ -773,6 +937,66 @@ namespace FocalCompiler
             }
 
             return brightness;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private (byte[,], byte[,]) GetEdges(byte[,] grays)
+        {
+            var width = grays.GetLength(0);
+            var height = grays.GetLength(1);
+
+            byte[,] verticalEdges = new byte[width, height];
+            byte[,] horizontalEdges = new byte[width, height];
+
+            for (int x = 1; x < width - 1; x++)
+            {
+                for (int y = 1; y < height - 1; y++)
+                {
+                    int edgeX = grays[x - 1, y - 1] - grays[x, y - 1] +
+                                grays[x - 1, y]     - grays[x, y] +
+                                grays[x - 1, y + 1] - grays[x, y + 1];
+                    int edgeY = grays[x - 1, y - 1] + grays[x, y - 1] + grays[x + 1, y - 1] -
+                                grays[x - 1, y] - grays[x, y] - grays[x + 1, y];
+                    int edgeXY = -grays[x - 1, y - 1] + grays[x, y - 1] +
+                                grays[x - 1, y] - grays[x, y];
+
+                    verticalEdges[x, y] = (byte)(Math.Abs(edgeX) / 3);
+
+                    if (edgeY > edgeXY)
+                    horizontalEdges[x, y] = (byte)edgeY;
+                    else
+                    horizontalEdges[x, y] = (byte)edgeXY;
+                }
+            }
+
+            return (verticalEdges, horizontalEdges);
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private List<Rectangle> CreateBoxAreas(bool[,] boxes)
+        {
+            var results = new List<Rectangle>();
+            var width = boxes.GetLength(0);
+            var height = boxes.GetLength(1);
+
+            for (int yBox = 0; yBox < height; yBox++)
+            {
+                int y = yBox * boxSize;
+
+                for (int xBox = 0; xBox < width; xBox++)
+                {
+                    if (boxes[xBox, yBox])
+                    {
+                        int x = xBox * boxSize;
+                        var re = new Rectangle(x, y, boxSize - 1, boxSize - 1);
+                        results.Add(re);
+                    }
+                }
+            }
+
+            return results;
         }
     }
 }

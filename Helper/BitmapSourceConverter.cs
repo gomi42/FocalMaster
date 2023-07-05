@@ -77,43 +77,52 @@ namespace FocalCompiler
                     byte greenFill;
                     byte blueFill;
 
-                    if (areaResults != null && i < areaResults.Count)
+                    if (areaResults != null)
                     {
-                        var result = areaResults[i];
-
-                        switch (result)
+                        if (i < areaResults.Count)
                         {
-                            case ScanResult.Ok:
-                                redBorder = 0;
-                                greenBorder = 255;
-                                blueBorder = 0;
-                                break;
+                            var result = areaResults[i];
 
-                            case ScanResult.NoProgramCode:
-                                redBorder = 255;
-                                greenBorder = 0;
-                                blueBorder = 255;
-                                break;
+                            switch (result)
+                            {
+                                case ScanResult.ProgramCode:
+                                    redBorder = 0;
+                                    greenBorder = 255;
+                                    blueBorder = 0;
+                                    break;
 
-                            case ScanResult.CheckSumError:
-                                redBorder = 255;
-                                greenBorder = 0;
-                                blueBorder = 0;
-                                break;
+                                case ScanResult.NoProgramCode:
+                                    redBorder = 255;
+                                    greenBorder = 0;
+                                    blueBorder = 255;
+                                    break;
 
-                            default:
-                                redBorder = 0;
-                                greenBorder = 255;
-                                blueBorder = 255;
-                                break;
+                                case ScanResult.CheckSumError:
+                                    redBorder = 255;
+                                    greenBorder = 0;
+                                    blueBorder = 0;
+                                    break;
 
+                                default:
+                                    redBorder = 0;
+                                    greenBorder = 255;
+                                    blueBorder = 255;
+                                    break;
+
+                            }
+                        }
+                        else
+                        {
+                            redBorder = 0;
+                            greenBorder = 0;
+                            blueBorder = 255;
                         }
                     }
                     else
                     {
-                        redBorder = 0;
+                        redBorder = 255;
                         greenBorder = 0;
-                        blueBorder = 255;
+                        blueBorder = 0;
                     }
 
 
@@ -150,42 +159,45 @@ namespace FocalCompiler
 
                     int row = re.Top - 1;
 
-                    for (int x = re.Left - 1; x < re.Right + 1; x++)
+                    if (row >= 0)
                     {
-                        int pixelIndex = row * stride + x * 3;
-                        pixels[pixelIndex] = blueBorder;
-                        pixels[pixelIndex + 1] = greenBorder;
-                        pixels[pixelIndex + 2] = redBorder;
-                    }
+                        for (int x = re.Left - 1; x < re.Right + 1; x++)
+                        {
+                            int pixelIndex = row * stride + x * 3;
+                            pixels[pixelIndex] = blueBorder;
+                            pixels[pixelIndex + 1] = greenBorder;
+                            pixels[pixelIndex + 2] = redBorder;
+                        }
 
-                    row = re.Bottom + 1;
+                        row = re.Bottom + 1;
 
-                    for (int x = re.Left - 1; x < re.Right + 1; x++)
-                    {
-                        int pixelIndex = row * stride + x * 3;
-                        pixels[pixelIndex] = blueBorder;
-                        pixels[pixelIndex + 1] = greenBorder;
-                        pixels[pixelIndex + 2] = redBorder;
-                    }
+                        for (int x = re.Left - 1; x < re.Right + 1; x++)
+                        {
+                            int pixelIndex = row * stride + x * 3;
+                            pixels[pixelIndex] = blueBorder;
+                            pixels[pixelIndex + 1] = greenBorder;
+                            pixels[pixelIndex + 2] = redBorder;
+                        }
 
-                    int col = re.Left - 1;
+                        int col = re.Left - 1;
 
-                    for (int y = re.Top; y < re.Bottom + 1; y++)
-                    {
-                        int pixelIndex = y * stride + col * 3;
-                        pixels[pixelIndex] = blueBorder;
-                        pixels[pixelIndex + 1] = greenBorder;
-                        pixels[pixelIndex + 2] = redBorder;
-                    }
+                        for (int y = re.Top; y < re.Bottom + 1; y++)
+                        {
+                            int pixelIndex = y * stride + col * 3;
+                            pixels[pixelIndex] = blueBorder;
+                            pixels[pixelIndex + 1] = greenBorder;
+                            pixels[pixelIndex + 2] = redBorder;
+                        }
 
-                    col = re.Right + 1;
+                        col = re.Right + 1;
 
-                    for (int y = re.Top; y < re.Bottom + 1; y++)
-                    {
-                        int pixelIndex = y * stride + col * 3;
-                        pixels[pixelIndex] = blueBorder;
-                        pixels[pixelIndex + 1] = greenBorder;
-                        pixels[pixelIndex + 2] = redBorder;
+                        for (int y = re.Top; y < re.Bottom + 1; y++)
+                        {
+                            int pixelIndex = y * stride + col * 3;
+                            pixels[pixelIndex] = blueBorder;
+                            pixels[pixelIndex + 1] = greenBorder;
+                            pixels[pixelIndex + 2] = redBorder;
+                        }
                     }
                 }
             }

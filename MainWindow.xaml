@@ -110,6 +110,13 @@
                             Click="ButtonScan"
                             Content="Scan"
                             ToolTip="Start scanning the files in the listed order" />
+                    <!--<Button Grid.Column="1"
+                            Margin="0,380,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ButtonScan2"
+                            Content="Scan2"
+                            ToolTip="Start scanning the files in the listed order" />-->
                 </Grid>
             </TabItem>
             <TabItem Header="FOCAL Source">
@@ -163,7 +170,7 @@
                             HorizontalAlignment="Center"
                             VerticalAlignment="Top"
                             Click="ButtonSaveFocal"
-                            Content="Save Focal"
+                            Content="Save FOCAL"
                             ToolTip="Save the FOCAL to file" />
                     <Button Grid.Column="1"
                             Margin="0,135,0,0"
@@ -216,7 +223,8 @@
                                           Visibility="Collapsed">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Image Source="{Binding}"
+                                        <Image Margin="0,0,0,3"
+                                               Source="{Binding}"
                                                Stretch="None" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
