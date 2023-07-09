@@ -205,7 +205,11 @@ namespace FocalCompiler
             results.Add(imageData);
 
             areas = CreateBoxAreas(boxes);
-            imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
+            imageData = new ErrorImageData { Filename = file, GrayImage = edgeX, BarcodeAreas = areas, AreaResults = null };
+            results.Add(imageData);
+
+            areas = CreateBoxAreas(boxes);
+            imageData = new ErrorImageData { Filename = file, GrayImage = edgeY, BarcodeAreas = null, AreaResults = null };
             results.Add(imageData);
 
             return results;
@@ -216,7 +220,7 @@ namespace FocalCompiler
         private bool[,] FindBoxes(byte[,] edgeX, byte[,] edgeY)
         {
             const int EdgeThreshold = 100;
-            const double VerticalHorizontalRatio = 2.7;
+            const double VerticalHorizontalRatio = 3.5;
 
             var width = edgeX.GetLength(0);
             var height = edgeX.GetLength(1);
@@ -962,11 +966,17 @@ namespace FocalCompiler
                                 grays[x - 1, y] - grays[x, y];
 
                     verticalEdges[x, y] = (byte)(Math.Abs(edgeX) / 3);
+                    edgeY /= 3;
+                    edgeXY /= 2;
 
                     if (edgeY > edgeXY)
-                    horizontalEdges[x, y] = (byte)edgeY;
+                    {
+                        horizontalEdges[x, y] = (byte)edgeY;
+                    }
                     else
-                    horizontalEdges[x, y] = (byte)edgeXY;
+                    {
+                        horizontalEdges[x, y] = (byte)edgeXY;
+                    }
                 }
             }
 

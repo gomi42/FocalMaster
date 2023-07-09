@@ -46,7 +46,10 @@ namespace FocalMaster
         {
             InitializeComponent();
             var list = new List<string>();
+#if DEBUG
+            list.Add(@"D:\Programme\HP41\FocalComp\Testdaten\Git\Test1.jpg");
             list.Add(@"D:\Rechner\Taschenrechner\HP-41\Wand\Manual\34.jpg");
+#endif
             BarcodeFiles.ItemsSource = list;
             
 
