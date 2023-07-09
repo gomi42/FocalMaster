@@ -220,7 +220,7 @@ namespace FocalCompiler
         private bool[,] FindBoxes(byte[,] edgeX, byte[,] edgeY)
         {
             const int EdgeThreshold = 100;
-            const double VerticalHorizontalRatio = 3.5;
+            const double VerticalHorizontalRatio = 3.0;
 
             var width = edgeX.GetLength(0);
             var height = edgeX.GetLength(1);
@@ -966,8 +966,8 @@ namespace FocalCompiler
                                 grays[x - 1, y] - grays[x, y];
 
                     verticalEdges[x, y] = (byte)(Math.Abs(edgeX) / 3);
-                    edgeY /= 3;
-                    edgeXY /= 2;
+                    edgeY = Math.Abs(edgeY) / 3;
+                    edgeXY = Math.Abs(edgeXY) / 2;
 
                     if (edgeY > edgeXY)
                     {
