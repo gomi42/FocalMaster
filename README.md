@@ -101,11 +101,11 @@ The following steps are processed in order to find barcodes in an image:
 - Convert the image to a gray scale image.
 - Convert the gray scale image to a "binary" image that contains only pure black and pure white pixels. All following steps work on this binary image.
 - Apply an edge detection filter to get the 1st derivative of each pixel.
-- Mark each pixel either vertical (red) or horizontal/diagonal (green) or none (black).
+- Mark each pixel either vertical (red) or horizontal (green) or none (black).
 
 ![barcode view](Images/Edges.jpg)
 - Split the edge detection result image into square boxes, starting point is 6x6 pixels.
-- For each box determine whether the box contains more vertical slopes than horizontal/diagonal slopes. If so add the box to the list of potential barcode boxes.
+- For each box determine whether the box contains more vertical slopes than horizontal slopes. If so add the box to the list of potential barcode boxes.
 
 ![barcode view](Images/Boxes.jpg)
 - Combine found boxes that are next to each other to potential barcode areas.

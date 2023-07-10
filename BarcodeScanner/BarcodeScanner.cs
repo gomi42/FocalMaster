@@ -28,6 +28,17 @@ using FocalDecompiler;
 
 namespace FocalCompiler
 {
+    /////////////////////////////////////////////////////////////
+
+    internal enum EdgeOrientation : byte
+    {
+        None,
+        Vertical,
+        Horizontal
+    }
+    
+    /////////////////////////////////////////////////////////////
+
     internal enum ScanResult
     {
         NoBarcode = 0,
@@ -36,13 +47,18 @@ namespace FocalCompiler
         ProgramCode = 3
     }
 
+    /////////////////////////////////////////////////////////////
+
     internal class ErrorImageData
     {
         public string Filename;
         public byte[,] GrayImage;
+        public EdgeOrientation[,] Edges;
         public List<Rectangle> BarcodeAreas;
         public List<ScanResult> AreaResults;
     }
+
+    /////////////////////////////////////////////////////////////
 
     internal class BarcodeScanner
     {
@@ -51,8 +67,6 @@ namespace FocalCompiler
 
         private const int MinBoxSize = 6;
         private const int MaxBoxSize = 20;
-
-        private int boxSize = MinBoxSize;
 
         /////////////////////////////////////////////////////////////
 
@@ -74,9 +88,9 @@ namespace FocalCompiler
                 var bitmap = (Bitmap)Image.FromFile(file);
                 var grayImage = CreateGrayScale(bitmap);
                 var binaryImage = Binarize(grayImage);
-                var (edgesX, edgesY) = GetEdges(binaryImage);
+                var edges = GetEdges(binaryImage);
 
-                boxSize = MinBoxSize;
+                var boxSize = MinBoxSize;
                 ScanResult scanResult;
                 List<Rectangle> barcodeAreas;
                 List<ScanResult> areaResults;
@@ -84,8 +98,8 @@ namespace FocalCompiler
 
                 do
                 {
-                    var boxes = FindBoxes(edgesX, edgesY);
-                    barcodeAreas = CombineBoxesToAreas(boxes);
+                    var boxes = FindBoxes(edges, boxSize);
+                    barcodeAreas = CombineBoxesToAreas(boxes, boxSize);
 
                     scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out code, out areaResults);
 
@@ -140,17 +154,17 @@ namespace FocalCompiler
                 var bitmap = (Bitmap)Image.FromFile(file);
                 var grayImage = CreateGrayScale(bitmap);
                 var binaryImage = Binarize(grayImage);
-                var (edgesX, edgesY) = GetEdges(binaryImage);
+                var edges = GetEdges(binaryImage);
 
-                boxSize = MinBoxSize;
+                var boxSize = MinBoxSize;
                 ScanResult scanResult;
                 List<Rectangle> barcodeAreas;
                 List<ScanResult> areaResults;
 
                 do
                 {
-                    var boxes = FindBoxes(edgesX, edgesY);
-                    barcodeAreas = CombineBoxesToAreas(boxes);
+                    var boxes = FindBoxes(edges, boxSize);
+                    barcodeAreas = CombineBoxesToAreas(boxes, boxSize);
 
                     scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out _, out areaResults);
 
@@ -195,20 +209,20 @@ namespace FocalCompiler
             var bitmap = (Bitmap)Image.FromFile(file);
             var grayImage = CreateGrayScale(bitmap);
             var binaryImage = Binarize(grayImage);
-            var (edgesX, edgesY) = GetEdges(binaryImage);
+            var edges = GetEdges(binaryImage);
 
-            boxSize = MinBoxSize;
-            var boxes = FindBoxes(edgesX, edgesY);
-            var areas = CombineBoxesToAreas(boxes);
+            var boxSize = MinBoxSize;
+            var boxes = FindBoxes(edges, boxSize);
+            var areas = CombineBoxesToAreas(boxes, boxSize);
 
             var imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
             results.Add(imageData);
 
-            areas = CreateBoxAreas(boxes);
-            imageData = new ErrorImageData { Filename = file, GrayImage = edgesY, BarcodeAreas = areas, AreaResults = null };
+            areas = CreateBoxAreas(boxes, boxSize);
+            imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
             results.Add(imageData);
 
-            imageData = new ErrorImageData { Filename = file, GrayImage = edgesY, BarcodeAreas = null, AreaResults = null };
+            imageData = new ErrorImageData { Filename = file, Edges = edges, BarcodeAreas = null, AreaResults = null };
             results.Add(imageData);
 
             return results;
@@ -216,41 +230,54 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private (byte[,], byte[,]) GetEdges(byte[,] grays)
+        private EdgeOrientation[,] GetEdges(byte[,] blacks)
         {
-            var width = grays.GetLength(0);
-            var height = grays.GetLength(1);
+            const int EdgeThreshold = 100 * 3;
 
-            byte[,] verticalEdges = new byte[width, height];
-            byte[,] horizontalEdges = new byte[width, height];
+            var width = blacks.GetLength(0);
+            var height = blacks.GetLength(1);
+            EdgeOrientation[,] edges = new EdgeOrientation[width, height];
 
             for (int x = 1; x < width - 1; x++)
             {
                 for (int y = 1; y < height - 1; y++)
                 {
-                    int edgeX = grays[x - 1, y - 1] - grays[x, y - 1] +
-                                grays[x - 1, y] - grays[x, y] +
-                                grays[x - 1, y + 1] - grays[x, y + 1];
-                    int edgeY = grays[x - 1, y - 1] + grays[x, y - 1] + grays[x + 1, y - 1] -
-                                grays[x - 1, y] - grays[x, y] - grays[x + 1, y];
+                    int edgeX = blacks[x - 1, y - 1] - blacks[x, y - 1] +
+                                blacks[x - 1, y] - blacks[x, y] +
+                                blacks[x - 1, y + 1] - blacks[x, y + 1];
+                    int edgeY = blacks[x - 1, y - 1] + blacks[x, y - 1] + blacks[x + 1, y - 1] -
+                                blacks[x - 1, y] - blacks[x, y] - blacks[x + 1, y];
 
-                    verticalEdges[x, y] = (byte)(Math.Abs(edgeX) / 3);
-                    horizontalEdges[x, y] = (byte)(Math.Abs(edgeY) / 3);
+                    edgeX = Math.Abs(edgeX);
+                    edgeY = Math.Abs(edgeY);
+
+                    if (edgeX > EdgeThreshold)
+                    {
+                        edges[x, y] = EdgeOrientation.Vertical;
+                    }
+                    else
+                    if (edgeY > EdgeThreshold)
+                    {
+                        edges[x, y] = EdgeOrientation.Horizontal;
+                    }
+                    else
+                    {
+                        edges[x, y] = EdgeOrientation.None;
+                    }
                 }
             }
 
-            return (verticalEdges, horizontalEdges);
+            return edges;
         }
 
         /////////////////////////////////////////////////////////////
 
-        private bool[,] FindBoxes(byte[,] edgeX, byte[,] edgeY)
+        private bool[,] FindBoxes(EdgeOrientation[,] edges, int boxSize)
         {
-            const int EdgeThreshold = 100;
-            const double VerticalHorizontalRatio = 3;
+            const int VerticalHorizontalRatio = 3;
 
-            var width = edgeX.GetLength(0);
-            var height = edgeX.GetLength(1);
+            var width = edges.GetLength(0);
+            var height = edges.GetLength(1);
             int xBoxes = width / boxSize;
             int yBoxes = height / boxSize;
             var boxes = new bool[xBoxes, yBoxes];
@@ -269,12 +296,12 @@ namespace FocalCompiler
                     {
                         for (int xBoxPixel = boxPixelStartX; xBoxPixel < boxPixelStartX + boxSize; xBoxPixel++)
                         {
-                            if (edgeX[xBoxPixel, yBoxPixel] > EdgeThreshold)
+                            if (edges[xBoxPixel, yBoxPixel] == EdgeOrientation.Vertical)
                             {
                                 sumX++;
                             }
-
-                            if (edgeY[xBoxPixel, yBoxPixel] > EdgeThreshold)
+                            else
+                            if (edges[xBoxPixel, yBoxPixel] == EdgeOrientation.Horizontal)
                             {
                                 sumY++;
                             }
@@ -293,7 +320,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private List<Rectangle> CombineBoxesToAreas(bool[,] boxes)
+        private List<Rectangle> CombineBoxesToAreas(bool[,] boxes, int boxSize)
         {
             const int MinBoxesHeight = 3;
             const int MinBoxesWidth = 5;
@@ -972,7 +999,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private List<Rectangle> CreateBoxAreas(bool[,] boxes)
+        private List<Rectangle> CreateBoxAreas(bool[,] boxes, int boxSize)
         {
             var results = new List<Rectangle>();
             var width = boxes.GetLength(0);

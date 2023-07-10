@@ -429,7 +429,16 @@ namespace FocalMaster
 
             foreach (var imageData in results)
             {
-                var bitmap = BitmapSourceConverter.GetBitmapSource(imageData.GrayImage, imageData.BarcodeAreas, imageData.AreaResults);
+                BitmapSource bitmap;
+
+                if (imageData.Edges != null)
+                {
+                    bitmap = BitmapSourceConverter.GetBitmapSource(imageData.Edges, imageData.BarcodeAreas, imageData.AreaResults);
+                }
+                else
+                {
+                    bitmap = BitmapSourceConverter.GetBitmapSource(imageData.GrayImage, imageData.BarcodeAreas, imageData.AreaResults);
+                }
 
                 bitmaps.Add(bitmap);
             }
