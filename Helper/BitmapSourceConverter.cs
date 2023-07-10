@@ -45,50 +45,6 @@ namespace FocalCompiler
             return bitmapSource;
         }
 
-        public static BitmapSource GetBitmapSource(EdgeOrientation[,] image, List<Rectangle> rects, List<ScanResult> areaResults)
-        {
-            var width = image.GetLength(0);
-            var height = image.GetLength(1);
-            PixelFormat pf = PixelFormats.Bgr24;
-            int stride = (width * pf.BitsPerPixel + 7) / 8;
-            byte[] pixels = new byte[stride * height];
-
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    byte r = 0;
-                    byte g = 0;
-                    byte b = 0;
-                    var edge = image[x, y];
-
-                    if (edge == EdgeOrientation.Vertical)
-                    {
-                        r = 255;
-                        g = 0;
-                        b = 0;
-                    }
-                    else
-                    if (edge == EdgeOrientation.HorizontalOrDiagonal)
-                    {
-                        r = 0;
-                        g = 255;
-                        b = 0;
-                    }
-
-                    int pixelIndex = y * stride + x * 3;
-                    pixels[pixelIndex] = b;
-                    pixels[pixelIndex + 1] = g;
-                    pixels[pixelIndex + 2] = r;
-                }
-            }
-
-            AddRectangels(rects, areaResults, stride, pixels);
-
-            var resultBitmap = BitmapSource.Create(width, height, 96, 96, pf, null, pixels, stride);
-            return resultBitmap;
-        }
-
         public static BitmapSource GetBitmapSource(byte[,] image, List<Rectangle> rects, List<ScanResult> areaResults)
         {
             var width = image.GetLength(0);

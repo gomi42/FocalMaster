@@ -391,7 +391,7 @@ namespace FocalMaster
         }
 
 #if DEBUG
-        private async void ButtonScan2(object sender, RoutedEventArgs e)
+        private void ButtonScan2(object sender, RoutedEventArgs e)
         {
             TestScan();
         }
@@ -429,16 +429,7 @@ namespace FocalMaster
 
             foreach (var imageData in results)
             {
-                BitmapSource bitmap;
-
-                if (imageData.Edges != null)
-                {
-                    bitmap = BitmapSourceConverter.GetBitmapSource(imageData.Edges, imageData.BarcodeAreas, imageData.AreaResults);
-                }
-                else
-                {
-                    bitmap = BitmapSourceConverter.GetBitmapSource(imageData.GrayImage, imageData.BarcodeAreas, imageData.AreaResults);
-                }
+                var bitmap = BitmapSourceConverter.GetBitmapSource(imageData.GrayImage, imageData.BarcodeAreas, imageData.AreaResults);
 
                 bitmaps.Add(bitmap);
             }
