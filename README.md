@@ -94,3 +94,23 @@ As shown below the command "CF 29" is recognized as a barcode but ignored becaus
 
 ### Acknowledgment
 The FocalMaster uses the PdfSharp library from Stefan Lange, empira Software GmbH.
+
+### The Barcode Finding Algorithm
+The following steps are processed in order to find barcodes in an image:
+
+- Convert the image to a gray scale image.
+- Convert the gray scale image to a "binary" image that contains only pure black and pure white pixels. All following steps work on this binary image.
+- Apply an edge detection filter to get the 1st derivative of each pixel.
+- Mark each pixel either vertical (red) or horizontal/diagonal (green) or none (black).
+
+![barcode view](Images/Edges.jpg)
+- Split the edge detection result image into square boxes, starting point is 6x6 pixels.
+- For each box determine whether the box contains more vertical slopes than horizontal/diagonal slopes. If so add the box to the list of potential barcode boxes.
+
+![barcode view](Images/Boxes.jpg)
+- Combine found boxes that are next to each other to potential barcode areas.
+- Ignore areas that are obviously too small.
+
+![barcode view](Images/Areas.jpg)
+- Try to decode the areas according to the HP-41 barcode definition.
+- If no barcode is found repeat the steps with a bigger box size up to 20x20 pixels.
