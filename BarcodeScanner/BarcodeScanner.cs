@@ -28,6 +28,13 @@ using FocalDecompiler;
 
 namespace FocalCompiler
 {
+    internal enum EdgeOrientation : byte
+    {
+        None,
+        Vertical,
+        HorizontalOrDiagonal
+    }
+
     internal enum ScanResult
     {
         NoBarcode = 0,
@@ -40,6 +47,7 @@ namespace FocalCompiler
     {
         public string Filename;
         public byte[,] GrayImage;
+        public EdgeOrientation[,] Edges;
         public List<Rectangle> BarcodeAreas;
         public List<ScanResult> AreaResults;
     }
@@ -74,7 +82,7 @@ namespace FocalCompiler
                 var bitmap = (Bitmap)Image.FromFile(file);
                 var grayImage = CreateGrayScale(bitmap);
                 var binaryImage = Binarize(grayImage);
-                (var edgeX, var edgeY) = GetEdges(binaryImage);
+                var edges = GetEdges(binaryImage);
 
                 boxSize = MinBoxSize;
                 ScanResult scanResult;
@@ -84,7 +92,7 @@ namespace FocalCompiler
 
                 do
                 {
-                    var boxes = FindBoxes(edgeX, edgeY);
+                    var boxes = FindBoxes(edges);
                     barcodeAreas = CombineBoxesToAreas(boxes);
 
                     scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out code, out areaResults);
@@ -140,7 +148,7 @@ namespace FocalCompiler
                 var bitmap = (Bitmap)Image.FromFile(file);
                 var grayImage = CreateGrayScale(bitmap);
                 var binaryImage = Binarize(grayImage);
-                (var edgeX, var edgeY) = GetEdges(binaryImage);
+                var edges = GetEdges(binaryImage);
 
                 boxSize = MinBoxSize;
                 ScanResult scanResult;
@@ -149,7 +157,7 @@ namespace FocalCompiler
 
                 do
                 {
-                    var boxes = FindBoxes(edgeX, edgeY);
+                    var boxes = FindBoxes(edges);
                     barcodeAreas = CombineBoxesToAreas(boxes);
 
                     scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out _, out areaResults);
@@ -195,21 +203,20 @@ namespace FocalCompiler
             var bitmap = (Bitmap)Image.FromFile(file);
             var grayImage = CreateGrayScale(bitmap);
             var binaryImage = Binarize(grayImage);
-            (var edgeX, var edgeY) = GetEdges(binaryImage);
+            var edges = GetEdges(binaryImage);
 
             boxSize = MinBoxSize;
-            var boxes = FindBoxes(edgeX, edgeY);
+            var boxes = FindBoxes(edges);
             var areas = CombineBoxesToAreas(boxes);
 
             var imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
             results.Add(imageData);
 
             areas = CreateBoxAreas(boxes);
-            imageData = new ErrorImageData { Filename = file, GrayImage = edgeX, BarcodeAreas = areas, AreaResults = null };
+            imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
             results.Add(imageData);
 
-            areas = CreateBoxAreas(boxes);
-            imageData = new ErrorImageData { Filename = file, GrayImage = edgeY, BarcodeAreas = null, AreaResults = null };
+            imageData = new ErrorImageData { Filename = file, Edges = edges, BarcodeAreas = null, AreaResults = null };
             results.Add(imageData);
 
             return results;
@@ -217,13 +224,59 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private bool[,] FindBoxes(byte[,] edgeX, byte[,] edgeY)
+        private EdgeOrientation[,] GetEdges(byte[,] blacks)
         {
-            const int EdgeThreshold = 100;
-            const double VerticalHorizontalRatio = 3.0;
+            var width = blacks.GetLength(0);
+            var height = blacks.GetLength(1);
 
-            var width = edgeX.GetLength(0);
-            var height = edgeX.GetLength(1);
+            EdgeOrientation[,] edges = new EdgeOrientation[width, height];
+
+            for (int x = 1; x < width - 1; x++)
+            {
+                for (int y = 1; y < height - 1; y++)
+                {
+                    int edgeX = blacks[x - 1, y - 1] - blacks[x, y - 1] +
+                                blacks[x - 1, y] - blacks[x, y] +
+                                blacks[x - 1, y + 1] - blacks[x, y + 1];
+                    int edgeY = blacks[x - 1, y - 1] + blacks[x, y - 1] + blacks[x + 1, y - 1] -
+                                blacks[x - 1, y] - blacks[x, y] - blacks[x + 1, y];
+                    int edgeXY = -blacks[x - 1, y - 1] - blacks[x, y - 1] + blacks[x + 1, y - 1] -
+                                blacks[x - 1, y] + blacks[x, y] - blacks[x, y + 1] +
+                                blacks[x - 1, y + 1] - blacks[x, y + 1] - blacks[x + 1, y + 1];
+                    int edgeYX = blacks[x - 1, y - 1] - blacks[x, y - 1] - blacks[x + 1, y - 1] -
+                                blacks[x - 1, y] + blacks[x, y] - blacks[x, y + 1] -
+                                blacks[x - 1, y + 1] - blacks[x, y + 1] + blacks[x + 1, y + 1];
+
+                    edgeX = Math.Abs(edgeX);
+                    edgeY = Math.Max(Math.Abs(edgeY), Math.Max(edgeXY, edgeYX));
+
+                    if (edgeX > 0 && edgeX > edgeY)
+                    {
+                        edges[x, y] = EdgeOrientation.Vertical;
+                    }
+                    else
+                    if (edgeY > 0)
+                    {
+                        edges[x, y] = EdgeOrientation.HorizontalOrDiagonal;
+                    }
+                    else
+                    {
+                        edges[x, y] = EdgeOrientation.None;
+                    }
+                }
+            }
+
+            return edges;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private bool[,] FindBoxes(EdgeOrientation[,] edges)
+        {
+            const int VerticalHorizontalRatio = 3;
+
+            var width = edges.GetLength(0);
+            var height = edges.GetLength(1);
             int xBoxes = width / boxSize;
             int yBoxes = height / boxSize;
             var boxes = new bool[xBoxes, yBoxes];
@@ -242,12 +295,12 @@ namespace FocalCompiler
                     {
                         for (int xBoxPixel = boxPixelStartX; xBoxPixel < boxPixelStartX + boxSize; xBoxPixel++)
                         {
-                            if (edgeX[xBoxPixel, yBoxPixel] > EdgeThreshold)
+                            if (edges[xBoxPixel, yBoxPixel] == EdgeOrientation.Vertical)
                             {
                                 sumX++;
                             }
 
-                            if (edgeY[xBoxPixel, yBoxPixel] > EdgeThreshold)
+                            if (edges[xBoxPixel, yBoxPixel] == EdgeOrientation.HorizontalOrDiagonal)
                             {
                                 sumY++;
                             }
@@ -631,7 +684,7 @@ namespace FocalCompiler
 
             while (firstBlackX < rightX)
             {
-                if (blacks[firstBlackX, row] == 0)
+                if (blacks[firstBlackX, row] != 0)
                 {
                     break;
                 }
@@ -648,7 +701,7 @@ namespace FocalCompiler
 
             while (lastBlackX > firstBlackX)
             {
-                if (blacks[lastBlackX, row] == 0)
+                if (blacks[lastBlackX, row] != 0)
                 {
                     break;
                 }
@@ -672,7 +725,7 @@ namespace FocalCompiler
             {
                 if (isBlack)
                 {
-                    if (blacks[x, row] == 0)
+                    if (blacks[x, row] != 0)
                     {
                         pixels++;
                     }
@@ -691,7 +744,7 @@ namespace FocalCompiler
                 }
                 else
                 {
-                    if (blacks[x, row] != 0)
+                    if (blacks[x, row] == 0)
                     {
                         pixels++;
                     }
@@ -876,7 +929,7 @@ namespace FocalCompiler
                 {
                     var val = grayImage[x, y];
 
-                    bin[x, y] = val < threshold ? (byte)0 : (byte)255;
+                    bin[x, y] = val < threshold ? (byte)255 : (byte)0;
                 }
             }
 
@@ -941,46 +994,6 @@ namespace FocalCompiler
             }
 
             return brightness;
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        private (byte[,], byte[,]) GetEdges(byte[,] grays)
-        {
-            var width = grays.GetLength(0);
-            var height = grays.GetLength(1);
-
-            byte[,] verticalEdges = new byte[width, height];
-            byte[,] horizontalEdges = new byte[width, height];
-
-            for (int x = 1; x < width - 1; x++)
-            {
-                for (int y = 1; y < height - 1; y++)
-                {
-                    int edgeX = grays[x - 1, y - 1] - grays[x, y - 1] +
-                                grays[x - 1, y]     - grays[x, y] +
-                                grays[x - 1, y + 1] - grays[x, y + 1];
-                    int edgeY = grays[x - 1, y - 1] + grays[x, y - 1] + grays[x + 1, y - 1] -
-                                grays[x - 1, y] - grays[x, y] - grays[x + 1, y];
-                    int edgeXY = -grays[x - 1, y - 1] + grays[x, y - 1] +
-                                grays[x - 1, y] - grays[x, y];
-
-                    verticalEdges[x, y] = (byte)(Math.Abs(edgeX) / 3);
-                    edgeY = Math.Abs(edgeY) / 3;
-                    edgeXY = Math.Abs(edgeXY) / 2;
-
-                    if (edgeY > edgeXY)
-                    {
-                        horizontalEdges[x, y] = (byte)edgeY;
-                    }
-                    else
-                    {
-                        horizontalEdges[x, y] = (byte)edgeXY;
-                    }
-                }
-            }
-
-            return (verticalEdges, horizontalEdges);
         }
 
         /////////////////////////////////////////////////////////////
