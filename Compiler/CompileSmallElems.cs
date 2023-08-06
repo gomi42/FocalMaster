@@ -90,8 +90,6 @@ namespace FocalCompiler
             CompileResult result = CompileResult.Ok;
             errorMsg = String.Empty;
 
-            outCodeLength = 0;
-
             foreach (char c in token.StringValue)
             {
                 if (c == '-')

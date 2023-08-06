@@ -37,6 +37,7 @@ namespace FocalCompiler
         private XRomCodes xroms = new XRomCodes (true);
         private Lex lex = new Lex ();
         private Parameter parameter = new Parameter ();
+        private bool lastStatementWasNumber;
 
         /////////////////////////////////////////////////////////////
 
@@ -120,32 +121,53 @@ namespace FocalCompiler
             switch (token.TokenType)
             {
                 case Token.TokType.Id:
-                    if (CompileId (token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    if (CompileId(token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    {
                         error = true;
+                    }
 
+                    lastStatementWasNumber = false;
                     break;
                 
                 case Token.TokType.Append:
-                    if (CompileTextAppend (token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    if (CompileTextAppend(token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    {
                         error = true;
+                    }
 
+                    lastStatementWasNumber = false;
                     break;
 
                 case Token.TokType.Text:
-                    if (CompileText (token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    if (CompileText(token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    {
                         error = true;
+                    }
 
+                    lastStatementWasNumber = false;
                     break;
 
                 case Token.TokType.Int:
                 case Token.TokType.Number:
-                    if (CompileNumber (token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
-                        error = true;
+                    outCodeLength = 0;
 
+                    if (lastStatementWasNumber)
+                    {
+                        outCode[0] = 0x00;
+                        outCodeLength++;
+                    }
+
+                    if (CompileNumber(token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    {
+                        error = true;
+                    }
+
+                    lastStatementWasNumber = true;
                     break;
 
                 case Token.TokType.Eol:
                 case Token.TokType.Comment:
+                    lastStatementWasNumber = false;
                     break;
 
                 default:

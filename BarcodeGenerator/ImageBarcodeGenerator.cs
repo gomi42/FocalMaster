@@ -171,6 +171,7 @@ namespace FocalCompiler
             enc.Save (fs);
             fs.Flush ();
             fs.Close ();
+            fs.Dispose();
         }
 
         /////////////////////////////////////////////////////////////

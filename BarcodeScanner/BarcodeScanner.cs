@@ -105,7 +105,7 @@ namespace FocalCompiler
 
                     boxSize += 1;
                 }
-                while (boxSize < MaxBoxSize && scanResult == ScanResult.NoBarcode);
+                while (boxSize < MaxBoxSize && scanResult != ScanResult.ProgramCode);
 
                 if (scanResult != ScanResult.ProgramCode)
                 {
@@ -130,6 +130,7 @@ namespace FocalCompiler
                 }
 
                 programCode.AddRange(code);
+                bitmap.Dispose();
             }
 
             var decomp = new Decompiler();
@@ -170,7 +171,7 @@ namespace FocalCompiler
 
                     boxSize += 1;
                 }
-                while (boxSize <= MaxBoxSize && scanResult == ScanResult.NoBarcode);
+                while (boxSize <= MaxBoxSize && scanResult != ScanResult.ProgramCode);
 
                 var imageData = new ErrorImageData { Filename = file, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
                 results.Add(imageData);
@@ -192,6 +193,8 @@ namespace FocalCompiler
                             break;
                     }
                 }
+
+                bitmap.Dispose();
             }
 
             return results;
@@ -224,6 +227,8 @@ namespace FocalCompiler
 
             imageData = new ErrorImageData { Filename = file, Edges = edges, BarcodeAreas = null, AreaResults = null };
             results.Add(imageData);
+
+            bitmap.Dispose();
 
             return results;
         }
