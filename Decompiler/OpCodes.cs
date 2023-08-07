@@ -51,10 +51,10 @@ namespace FocalDecompiler
 
         public class OpCode
         {
-            public String Mnemonic;
+            public string Mnemonic;
             public FctType FctType;
 
-            public OpCode (String Mnemonic, FctType ParamType)
+            public OpCode (string Mnemonic, FctType ParamType)
             {
                 this.Mnemonic = Mnemonic;
                 this.FctType = ParamType;

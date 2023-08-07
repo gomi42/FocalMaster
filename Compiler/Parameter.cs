@@ -27,8 +27,8 @@ namespace FocalCompiler
 {
     public class Parameter
     {
-        private Dictionary<String, short> stackParamter;
-        private Dictionary<String, short> shortLabelParamter;
+        private Dictionary<string, short> stackParamter;
+        private Dictionary<string, short> shortLabelParamter;
 
         /////////////////////////////////////////////////////////////
 

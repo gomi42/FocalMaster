@@ -43,7 +43,7 @@ namespace FocalCompiler
 
         public TokType TokenType;
         public short IntValue;
-        public String StringValue;
+        public string StringValue;
 
         public Token ()
         {

@@ -32,7 +32,7 @@ namespace FocalCompiler
         CompileResult CompileMnemonicType2 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
-            errorMsg = String.Empty;
+            errorMsg = string.Empty;
             Token token = new Token ();
 
             lex.GetToken (ref token);
@@ -212,7 +212,7 @@ namespace FocalCompiler
         CompileResult CompileMnemonicType4 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
-            errorMsg = String.Empty;
+            errorMsg = string.Empty;
             Token token = new Token ();
 
             lex.GetToken (ref token);
@@ -291,7 +291,7 @@ namespace FocalCompiler
         CompileResult CompileMnemonicType5 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
-            errorMsg = String.Empty;
+            errorMsg = string.Empty;
             Token token = new Token ();
 
             lex.GetToken (ref token);
@@ -370,7 +370,7 @@ namespace FocalCompiler
         CompileResult CompileMnemonicType6 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
-            errorMsg = String.Empty;
+            errorMsg = string.Empty;
             Token token = new Token ();
 
             lex.GetToken (ref token);

@@ -32,7 +32,7 @@ namespace FocalXRomCodes
 {
     public class XRomCode
     {
-        public String Mnemonic;
+        public string Mnemonic;
         public short  Rom;
         public short  Function;
 
@@ -542,7 +542,7 @@ namespace FocalXRomCodes
         {
             public int Compare (XRomCode x, XRomCode y)
             {
-                return String.Compare (x.Mnemonic, y.Mnemonic, true);
+                return string.Compare (x.Mnemonic, y.Mnemonic, true);
             }
         }
 
@@ -601,7 +601,7 @@ namespace FocalXRomCodes
         {
             opCode = null;
 
-            int Index = xromCodeList.BinarySearch (new XRomCode (String.Empty, (short)module, (short)function), MneComparer);
+            int Index = xromCodeList.BinarySearch (new XRomCode (string.Empty, (short)module, (short)function), MneComparer);
 
             if (Index < 0)
                 return false;

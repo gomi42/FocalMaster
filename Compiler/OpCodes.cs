@@ -223,7 +223,7 @@ namespace FocalCompiler
         {
             public int Compare (OpCode x, OpCode y)
             {
-                return String.Compare (x.Mnemonic, y.Mnemonic, true);
+                return string.Compare (x.Mnemonic, y.Mnemonic, true);
             }
         }
 

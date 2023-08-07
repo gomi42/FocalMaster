@@ -25,7 +25,7 @@ namespace FocalCompiler
 {
     partial class Compiler
     {
-        CompileResult DoDirective (Token token, ref int outCodeLength, ref byte[] outCode, out String errorMsg)
+        CompileResult DoDirective (Token token, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
         {
             errorMsg = string.Empty;
             CompileResult result = CompileResult.Ok;

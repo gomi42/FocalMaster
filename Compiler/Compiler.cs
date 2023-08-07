@@ -58,7 +58,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private CompileResult CompileId (Token token, ref int outCodeLength, ref byte[] outCode, out String errorMsg)
+        private CompileResult CompileId (Token token, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
         {
             errorMsg = "";
             CompileResult result;
@@ -96,7 +96,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        public bool Compile (String line, ref int outCodeLength, ref byte [] outCode, out String errorMsg)
+        public bool Compile (string line, ref int outCodeLength, ref byte [] outCode, out string errorMsg)
         {
             bool error = false;
             errorMsg = "";
