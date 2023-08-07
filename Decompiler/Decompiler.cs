@@ -478,7 +478,7 @@ namespace FocalDecompiler
                     haveNextByte = false;
                 }
             }
-            catch (Exception e)
+            catch
             {
                 Console.Write("Exception caught on statement: ");
 

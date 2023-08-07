@@ -19,37 +19,77 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
+using System;
 using System.Windows;
 using System.Windows.Media;
 
 namespace FocalMaster
 {
-    public partial class MainWindow
+    public class VisualHost : FrameworkElement
     {
-        public class VisualHost : FrameworkElement
+        private DrawingVisual visual;
+
+        /////////////////////////////////////////////////////////////
+
+        public VisualHost()
         {
-            private DrawingVisual visual;
+        }
 
-            public VisualHost(DrawingVisual visual)
-            {
-                this.visual = visual;
-                AddVisualChild(visual);
-            }
+        /////////////////////////////////////////////////////////////
 
-            protected override int VisualChildrenCount
-            {
-                get { return visual != null ? 1 : 0; }
-            }
-
-            protected override Visual GetVisualChild(int index)
+        public virtual DrawingVisual Child
+        {
+            get
             {
                 return visual;
             }
 
-            protected override Size MeasureOverride(Size availableSize)
+            set
             {
-                return visual.ContentBounds.Size;
+                if (visual != value)
+                {
+                    RemoveVisualChild(visual);
+                    RemoveLogicalChild(visual);
+
+                    visual = value;
+
+                    AddLogicalChild(value);
+                    AddVisualChild(value);
+
+                    InvalidateMeasure();
+                }
             }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override int VisualChildrenCount
+        {
+            get { return visual != null ? 1 : 0; }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override Visual GetVisualChild(int index)
+        {
+            if (visual == null || index != 0)
+            {
+                throw new ArgumentOutOfRangeException("index");
+            }
+            
+            return visual;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            if (visual == null)
+            {
+                return new Size();
+            }
+
+            return visual.ContentBounds.Size;
         }
     }
 }

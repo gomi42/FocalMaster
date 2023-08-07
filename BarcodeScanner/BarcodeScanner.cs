@@ -105,7 +105,7 @@ namespace FocalCompiler
 
                     boxSize += 1;
                 }
-                while (boxSize < MaxBoxSize && scanResult != ScanResult.ProgramCode);
+                while (boxSize < MaxBoxSize && scanResult != ScanResult.ProgramCode && scanResult != ScanResult.NoProgramCode);
 
                 if (scanResult != ScanResult.ProgramCode)
                 {
@@ -171,7 +171,7 @@ namespace FocalCompiler
 
                     boxSize += 1;
                 }
-                while (boxSize <= MaxBoxSize && scanResult != ScanResult.ProgramCode);
+                while (boxSize <= MaxBoxSize && scanResult != ScanResult.ProgramCode && scanResult != ScanResult.NoProgramCode);
 
                 var imageData = new ErrorImageData { Filename = file, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
                 results.Add(imageData);

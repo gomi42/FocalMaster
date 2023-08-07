@@ -615,7 +615,6 @@ namespace FocalXRomCodes
 
         public void AddMnemonicsFromFile (string filename)
         {
-            const int RegexIdxAll = 0;
             const int RegexIdxEmpty = 1;
             const int RegexIdxComment = 2;
             const int RegexIdxXRomDefinition = 3;
@@ -709,7 +708,7 @@ namespace FocalXRomCodes
 
                 xromCodeList.Sort (MneComparer);
             }
-            catch(Exception e)
+            catch
             {
             }
         }

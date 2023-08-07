@@ -228,7 +228,7 @@ namespace FocalMaster
 
             if (generator.GenerateVisual(Focal.Text, out DrawingVisual visual))
             {
-                BarcodeVisualizer.Child = new VisualHost(visual);
+                BarcodeVisualizer.Child = visual;
                 MyTabControl.SelectedIndex = 2;
                 ShowErrors.Text = string.Empty;
             }

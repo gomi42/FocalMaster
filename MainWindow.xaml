@@ -217,8 +217,8 @@
                     <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto">
                         <Grid>
-                            <Border x:Name="BarcodeVisualizer"
-                                    Padding="10" />
+                            <local:VisualHost x:Name="BarcodeVisualizer"
+                                              Margin="10" />
                             <ItemsControl x:Name="MyImages"
                                           Visibility="Collapsed">
                                 <ItemsControl.ItemTemplate>
