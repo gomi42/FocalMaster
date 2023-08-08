@@ -70,25 +70,22 @@ namespace FocalMaster
             string exeFilename = Assembly.GetExecutingAssembly().Location;
             compiler.SetXromFile(Path.Combine(Path.GetDirectoryName(exeFilename), "XRomCodes.txt"));
 
-            int outcodeLength;
-            byte[] outCode = new byte[20];
-
             int lineNr = 1;
-
             string Line = inFileStream.ReadLine ();
 
             while (Line != null)
             {
-                outcodeLength = 0;
                 string errorMsg;
 
-                if (compiler.Compile (Line, ref outcodeLength, ref outCode, out errorMsg))
+                if (compiler.Compile (Line, out byte[] outCode, out errorMsg))
                 {
                     Errors.Add(string.Format ("Error line {0}: {1}", lineNr.ToString (), errorMsg));
                 }
 
                 if (Errors.Count == 0)
                 {
+                    int outcodeLength = outCode.Length;
+
                     for (int i = 0; i < outcodeLength; i++)
                     {
                         outFileStream.WriteByte (outCode[i]);

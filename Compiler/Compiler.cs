@@ -58,25 +58,25 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private CompileResult CompileId (Token token, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        private CompileResult CompileId (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             errorMsg = "";
             CompileResult result;
 
             // 1: check standard mnemonic
-            result = CompileMnemonic (token, ref outCodeLength, ref outCode, out errorMsg);
+            result = CompileMnemonic (token, outCode, out outCodeLength, out errorMsg);
 
             if (result != CompileResult.UnknowStatement)
                 return result;
                     
             // 2: check XROM mnemonics
-            result = CompileXRom (token, ref outCodeLength, ref outCode, out errorMsg);
+            result = CompileXRom (token, outCode, out outCodeLength, out errorMsg);
 
             if (result != CompileResult.UnknowStatement)
                 return result;
 
             // 3: check directive
-            result = DoDirective (token, ref outCodeLength, ref outCode, out errorMsg);
+            result = DoDirective (token, outCode, out outCodeLength, out errorMsg);
 
             if (result != CompileResult.UnknowStatement)
                 return result;
@@ -87,19 +87,19 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        public bool CompileEnd (ref int outCodeLength, ref byte[] outCode)
+        public bool CompileEnd (out byte[] outCode)
         {
-            string errorMsg;
-
-            return Compile (".END.", ref outCodeLength, ref outCode, out errorMsg);
+            return Compile (".END.", out outCode, out _);
         }
 
         /////////////////////////////////////////////////////////////
 
-        public bool Compile (string line, ref int outCodeLength, ref byte [] outCode, out string errorMsg)
+        public bool Compile (string line, out byte[] outputCode, out string errorMsg)
         {
             bool error = false;
             errorMsg = "";
+            var outCode = new byte[20];
+            int outCodeLength;
             Token token = new Token ();
 
             lex.GetFirstToken (line, ref token);
@@ -110,9 +110,11 @@ namespace FocalCompiler
                 {
                     case Token.TokType.Eol:
                     case Token.TokType.Comment:
+                        outputCode = new byte[0];
                         return false;
                     
                     default:
+                        outputCode = new byte[0];
                         errorMsg = "Statement after .END. detected";
                         return true;
                 }
@@ -121,7 +123,7 @@ namespace FocalCompiler
             switch (token.TokenType)
             {
                 case Token.TokType.Id:
-                    if (CompileId(token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    if (CompileId(token, outCode, out outCodeLength, out errorMsg) != CompileResult.Ok)
                     {
                         error = true;
                     }
@@ -130,7 +132,7 @@ namespace FocalCompiler
                     break;
                 
                 case Token.TokType.Append:
-                    if (CompileTextAppend(token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    if (CompileTextAppend(token, outCode, out outCodeLength, out errorMsg) != CompileResult.Ok)
                     {
                         error = true;
                     }
@@ -139,7 +141,7 @@ namespace FocalCompiler
                     break;
 
                 case Token.TokType.Text:
-                    if (CompileText(token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    if (CompileText(token, outCode, out outCodeLength, out errorMsg) != CompileResult.Ok)
                     {
                         error = true;
                     }
@@ -157,7 +159,7 @@ namespace FocalCompiler
                         outCodeLength++;
                     }
 
-                    if (CompileNumber(token, ref outCodeLength, ref outCode, out errorMsg) != CompileResult.Ok)
+                    if (CompileNumber(token, outCode, ref outCodeLength, out errorMsg) != CompileResult.Ok)
                     {
                         error = true;
                     }
@@ -167,10 +169,12 @@ namespace FocalCompiler
 
                 case Token.TokType.Eol:
                 case Token.TokType.Comment:
+                    outCodeLength = 0;
                     lastStatementWasNumber = false;
                     break;
 
                 default:
+                    outCodeLength = 0;
                     error = true;
                     errorMsg = string.Format ("Unknown statement \"{0}\"", token.StringValue);
                     break;
@@ -185,6 +189,13 @@ namespace FocalCompiler
                     error = true;
                     errorMsg = string.Format ("Unexpected parameter \"{0}\"", token.StringValue);
                 }
+
+                outputCode = new byte[outCodeLength];
+                Array.Copy(outCode, outputCode, outCodeLength);
+            }
+            else
+            {
+                outputCode = new byte[0];
             }
 
             return error;

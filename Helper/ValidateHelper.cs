@@ -30,7 +30,6 @@ namespace FocalMaster.Helper
         public static List<string> Validate(string focal)
         {
             List<string> results = new List<string>();
-            byte[] outCode = new byte[20];
             var compiler = new Compiler();
             int lineNr = 1;
 
@@ -39,9 +38,8 @@ namespace FocalMaster.Helper
             foreach (var line in lines)
             {
                 string ErrorMsg;
-                var outcodeLength = 0;
 
-                if (compiler.Compile(line, ref outcodeLength, ref outCode, out ErrorMsg))
+                if (compiler.Compile(line, out byte[] outCode, out ErrorMsg))
                 {
                     results.Add(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, lineNr, line));
                 }

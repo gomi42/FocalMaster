@@ -34,31 +34,32 @@ namespace FocalCompiler
             CharConv.Add ('|', (char)0x21);
         }
 
-        CompileResult CompileTextAppend (Token token, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileTextAppend (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
-            errorMsg = string.Empty;
-
             lex.GetToken (ref token);
 
             if (token.TokenType != Token.TokType.Text)
             {
+                outCodeLength = 0;
                 errorMsg = string.Format ("Text expected \"{0}\"", token.StringValue);
                 return CompileResult.CompileError;
             }
 
-            return CompileText (token, ref outCodeLength, ref outCode, out errorMsg, true);
+            return CompileText (token, outCode, out outCodeLength, out errorMsg, true);
         }
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileText (Token token, ref int outCodeLength, ref byte[] outCode, out string errorMsg, bool append = false)
+        CompileResult CompileText (Token token, byte[] outCode, out int outCodeLength, out string errorMsg, bool append = false)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
             int tokenLength = token.StringValue.Length;
 
             if (append)
+            {
                 tokenLength++;
+            }
 
             if (tokenLength <= 15)
             {
@@ -76,6 +77,7 @@ namespace FocalCompiler
             }
             else
             {
+                outCodeLength = 0;
                 result = CompileResult.CompileError;
                 errorMsg = string.Format ("String to too long \"{0}\"", token.StringValue);
             }
@@ -85,7 +87,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileNumber (Token token, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileNumber (Token token, byte[] outCode, ref int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;

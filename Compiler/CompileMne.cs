@@ -29,7 +29,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType2 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileMnemonicType2 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
@@ -60,6 +60,7 @@ namespace FocalCompiler
                     }
                     else
                     {
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                     }
@@ -77,6 +78,7 @@ namespace FocalCompiler
                     }
                     else
                     {
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Wrong stack parameter \"{0}\"", token.StringValue);
                     }
@@ -106,6 +108,7 @@ namespace FocalCompiler
                             }
                             else
                             {
+                                outCodeLength = 0;
                                 result = CompileResult.CompileError;
                                 errorMsg = string.Format ("Wrong stack parameter \"{0}\"", token.StringValue);
                             }
@@ -113,6 +116,7 @@ namespace FocalCompiler
                         }
 
                     default:
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Wrong parameter type or parameter expected");
                         break;
@@ -120,6 +124,7 @@ namespace FocalCompiler
                     break;
                         
                 default:
+                    outCodeLength = 0;
                     result = CompileResult.CompileError;
                     errorMsg = string.Format ("Wrong parameter type or parameter expected");
                     break;
@@ -130,7 +135,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType3 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileMnemonicType3 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
@@ -149,6 +154,7 @@ namespace FocalCompiler
                     }
                     else
                     {
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                     }
@@ -168,6 +174,7 @@ namespace FocalCompiler
                             }
                             else
                             {
+                                outCodeLength = 0;
                                 result = CompileResult.CompileError;
                                 errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                             }
@@ -185,6 +192,7 @@ namespace FocalCompiler
                             }
                             else
                             {
+                                outCodeLength = 0;
                                 result = CompileResult.CompileError;
                                 errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                             }
@@ -192,6 +200,7 @@ namespace FocalCompiler
                         }
 
                         default:
+                            outCodeLength = 0;
                             result = CompileResult.CompileError;
                             errorMsg = string.Format ("Wrong parameter type or parameter expected");
                             break;
@@ -199,6 +208,7 @@ namespace FocalCompiler
                     break;
 
                 default:
+                    outCodeLength = 0;
                     result = CompileResult.CompileError;
                     errorMsg = string.Format ("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
                     break;
@@ -209,7 +219,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType4 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileMnemonicType4 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
@@ -228,6 +238,7 @@ namespace FocalCompiler
                     }
                     else
                     {
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
                     }
@@ -247,6 +258,7 @@ namespace FocalCompiler
                             }
                             else
                             {
+                                outCodeLength = 0;
                                 result = CompileResult.CompileError;
                                 errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                             }
@@ -264,6 +276,7 @@ namespace FocalCompiler
                             }
                             else
                             {
+                                outCodeLength = 0;
                                 result = CompileResult.CompileError;
                                 errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                             }
@@ -271,6 +284,7 @@ namespace FocalCompiler
                         }
 
                         default:
+                            outCodeLength = 0;
                             result = CompileResult.CompileError;
                             errorMsg = string.Format ("Wrong parameter type or parameter expected");
                             break;
@@ -278,6 +292,7 @@ namespace FocalCompiler
                     break;
 
                 default:
+                    outCodeLength = 0;
                     result = CompileResult.CompileError;
                     errorMsg = string.Format ("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
                     break;
@@ -288,7 +303,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType5 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileMnemonicType5 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
@@ -313,6 +328,7 @@ namespace FocalCompiler
                         }
                         else
                         {
+                            outCodeLength = 0;
                             result = CompileResult.CompileError;
                             errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                         }
@@ -330,6 +346,7 @@ namespace FocalCompiler
                     }
                     else
                     {
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                     }
@@ -351,12 +368,14 @@ namespace FocalCompiler
                     }
                     else
                     {
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                     }
                     break;
 
                 default:
+                    outCodeLength = 0;
                     result = CompileResult.CompileError;
                     errorMsg = string.Format ("Wrong parameter type or parameter expected");
                     break;
@@ -367,7 +386,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType6 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileMnemonicType6 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
@@ -394,6 +413,7 @@ namespace FocalCompiler
                         }
                         else
                         {
+                            outCodeLength = 0;
                             result = CompileResult.CompileError;
                             errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                         }
@@ -412,6 +432,7 @@ namespace FocalCompiler
                     }
                     else
                     {
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                     }
@@ -431,6 +452,7 @@ namespace FocalCompiler
                     }
                     else
                     {
+                        outCodeLength = 0;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("String too long \"{0}\"", token.StringValue);
                     }
@@ -453,6 +475,7 @@ namespace FocalCompiler
                             }
                             else
                             {
+                                outCodeLength = 0;
                                 result = CompileResult.CompileError;
                                 errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                             }
@@ -473,6 +496,7 @@ namespace FocalCompiler
                             }
                             else
                             {
+                                outCodeLength = 0;
                                 result = CompileResult.CompileError;
                                 errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
                             }
@@ -480,6 +504,7 @@ namespace FocalCompiler
                         }
 
                         default:
+                            outCodeLength = 0;
                             result = CompileResult.CompileError;
                             errorMsg = string.Format ("Wrong parameter type or parameter expected");
                             break;
@@ -487,6 +512,7 @@ namespace FocalCompiler
                     break;
 
                 default:
+                    outCodeLength = 0;
                     result = CompileResult.CompileError;
                     errorMsg = string.Format ("Wrong parameter type or parameter expected");
                     break;
@@ -497,7 +523,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType7 (OpCode opCode, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileMnemonicType7 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
@@ -509,6 +535,7 @@ namespace FocalCompiler
 
             if (!(Token.TokenType == Token.TokType.Int && 0 <= Token.IntValue && Token.IntValue <= 31))
             {
+                outCodeLength = 0;
                 errorMsg = string.Format ("Parameter 1 out of range \"{0}\"", Token.StringValue);
                 return CompileResult.CompileError;
             }
@@ -518,6 +545,7 @@ namespace FocalCompiler
 
             if (Token.TokenType != Token.TokType.Komma)
             {
+                outCodeLength = 0;
                 errorMsg = string.Format ("',' expected instead of '{0}'", Token.StringValue);
                 return CompileResult.CompileError;
             }
@@ -526,6 +554,7 @@ namespace FocalCompiler
 
             if (!(Token.TokenType == Token.TokType.Int && 0 <= Token.IntValue && Token.IntValue <= 63))
             {
+                outCodeLength = 0;
                 errorMsg = string.Format ("Parameter 2 out of range \"{0}\"", Token.StringValue);
                 return CompileResult.CompileError;
             }
@@ -540,10 +569,11 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonic (Token token, ref int outCodeLength, ref byte[] outCode, out string errorMsg)
+        CompileResult CompileMnemonic (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
+            outCodeLength = 0;
             OpCode opCode;
 
             if (!opCodes.FindMnemonic (token.StringValue, out opCode))
@@ -559,27 +589,27 @@ namespace FocalCompiler
                     break;
 
                 case FctType.R_0_101_Stack:
-                    result = CompileMnemonicType2 (opCode , ref outCodeLength, ref outCode, out errorMsg);
+                    result = CompileMnemonicType2 (opCode, outCode, out outCodeLength, out errorMsg);
                     break;
 
                 case FctType.R_0_9:
-                    result = CompileMnemonicType3 (opCode , ref outCodeLength, ref outCode, out errorMsg);
+                    result = CompileMnemonicType3 (opCode, outCode, out outCodeLength, out errorMsg);
                     break;
 
                 case FctType.R_0_55:
-                    result = CompileMnemonicType4 (opCode , ref outCodeLength, ref outCode, out errorMsg);
+                    result = CompileMnemonicType4 (opCode, outCode, out outCodeLength, out errorMsg);
                     break;
 
                 case FctType.R_0_99_A_J_Alpha1:
-                    result = CompileMnemonicType5 (opCode , ref outCodeLength, ref outCode, out errorMsg);
+                    result = CompileMnemonicType5 (opCode, outCode, out outCodeLength, out errorMsg);
                     break;
 
                 case FctType.R_0_99_A_J_Alpha2:
-                    result = CompileMnemonicType6 (opCode , ref outCodeLength, ref outCode, out errorMsg);
+                    result = CompileMnemonicType6 (opCode, outCode, out outCodeLength, out errorMsg);
                     break;
 
                 case FctType.XRom:
-                    result = CompileMnemonicType7 (opCode , ref outCodeLength, ref outCode, out errorMsg);
+                    result = CompileMnemonicType7 (opCode, outCode, out outCodeLength, out errorMsg);
                     break;
 
                 default:

@@ -38,8 +38,6 @@ namespace FocalCompiler
         private int lastChecksum;
         private int currentRow;
 
-        private int outcodeLength;
-        private byte[] outCode = new byte[20];
         private byte[] barcodeBuf;
         private int barcodeBufIndex = 0;
         private int trailing = 0;
@@ -86,16 +84,15 @@ namespace FocalCompiler
             while (line != null)
             {
                 string ErrorMsg;
-                outcodeLength = 0;
 
-                if (compiler.Compile(line, ref outcodeLength, ref outCode, out ErrorMsg))
+                if (compiler.Compile(line, out byte[] outCode, out ErrorMsg))
                 {
                    Errors.Add(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, lineNr, line));
                 }
 
                 if (Errors.Count == 0)
                 {
-                    AddToBarcode(outCode, outcodeLength);
+                    AddToBarcode(outCode);
                 }
 
                 lineNr++;
@@ -106,8 +103,8 @@ namespace FocalCompiler
             {
                 if (!compiler.IsEndDetected)
                 {
-                    compiler.CompileEnd(ref outcodeLength, ref outCode);
-                    AddToBarcode(outCode, outcodeLength);
+                    compiler.CompileEnd(out byte[] outCode);
+                    AddToBarcode(outCode);
                 }
 
                 if (barcodeBufIndex > 0)
@@ -136,8 +133,10 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private void AddToBarcode(byte[] outCode, int outcodeLength)
+        private void AddToBarcode(byte[] outCode)
         {
+            int outcodeLength = outCode.Length;
+
             if (outcodeLength > 0)
             {
                 for (int i = 0; i < outcodeLength; i++)
