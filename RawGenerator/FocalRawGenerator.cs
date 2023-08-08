@@ -38,31 +38,14 @@ namespace FocalMaster
         {
             Errors = new List<string>();
             byte[] byteArray = Encoding.ASCII.GetBytes(focal);
-            MemoryStream stream = new MemoryStream(byteArray);
-            StreamReader reader = new StreamReader(stream);
 
-            return Compile(reader, outputFilename);
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        public bool CompileFile(string inputFilename)
-        {
-            Errors = new List<string>();
-            StreamReader inFileStream;
-
-            try
+            using (MemoryStream stream = new MemoryStream(byteArray))
             {
-                inFileStream = new StreamReader(inputFilename, System.Text.Encoding.ASCII);
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    return Compile(reader, outputFilename);
+                }
             }
-            catch
-            {
-                Errors.Add(string.Format("Cannot open input file: {0}", inputFilename));
-                return false;
-            }
-
-            string outFileName = Path.ChangeExtension (inputFilename, ".raw");
-            return Compile(inFileStream, outFileName);
         }
 
         /////////////////////////////////////////////////////////////
@@ -116,8 +99,8 @@ namespace FocalMaster
                 Line = inFileStream.ReadLine ();
             }
 
-            inFileStream.Close ();
-            outFileStream.Close ();
+            outFileStream.Close();
+            outFileStream.Dispose();
 
             if (Errors.Count > 0)
             {

@@ -86,31 +86,14 @@ namespace FocalCompiler
         public bool GenerateImage(string focal, string outputBaseFilename)
         {
             byte[] byteArray = Encoding.ASCII.GetBytes(focal);
-            MemoryStream stream = new MemoryStream(byteArray);
-            StreamReader reader = new StreamReader(stream);
 
-            return GenerateImage(reader, outputBaseFilename, false);
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        public bool GenerateImage(string inputFilename, bool hexDebugOutput)
-        {
-            /////////////////////////////
-
-            StreamReader inFileStream;
-
-            try
+            using (MemoryStream stream = new MemoryStream(byteArray))
             {
-                inFileStream = new StreamReader(inputFilename, System.Text.Encoding.ASCII);
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    return GenerateImage(reader, outputBaseFilename, false);
+                }
             }
-            catch
-            {
-                Errors.Add(string.Format("Cannot open input file: {0}", inputFilename));
-                return false;
-            }
-
-            return GenerateImage(inFileStream, inputFilename, hexDebugOutput);
         }
 
         /////////////////////////////////////////////////////////////

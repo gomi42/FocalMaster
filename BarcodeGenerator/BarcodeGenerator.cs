@@ -34,8 +34,8 @@ namespace FocalCompiler
         /////////////////////////////
 
         private StreamWriter debugHexFileStream;
-        private string outFilename;
-        private int checksum;
+        private string debugHexFilename;
+        private int lastChecksum;
         private int currentRow;
 
         private int outcodeLength;
@@ -65,27 +65,21 @@ namespace FocalCompiler
 
             if (hexDebugOutput)
             {
-                outFilename = Path.ChangeExtension("debug.test", ".hex");
+                debugHexFilename = Path.ChangeExtension("debug.test", ".hex");
 
                 try
                 {
-                    debugHexFileStream = new StreamWriter(outFilename, false, System.Text.Encoding.ASCII);
+                    debugHexFileStream = new StreamWriter(debugHexFilename, false, System.Text.Encoding.ASCII);
                 }
                 catch
                 {
-                    Errors.Add($"Cannot create debug file {outFilename}");
+                    Errors.Add($"Cannot create debug file {debugHexFilename}");
                     return false;
                 }
             }
 
-            /////////////////////////////
-
-            /////////////////////////////////////////////////////////////
-
             barcodeBuf = new byte[MaxCodeBytesPerRow];
             compiler = new Compiler();
-
-            /////////////////////////////
 
             string line = inFileStream.ReadLine();
 
@@ -101,7 +95,7 @@ namespace FocalCompiler
 
                 if (Errors.Count == 0)
                 {
-                    AddToBarcode(outcodeLength, outCode);
+                    AddToBarcode(outCode, outcodeLength);
                 }
 
                 lineNr++;
@@ -113,7 +107,7 @@ namespace FocalCompiler
                 if (!compiler.IsEndDetected)
                 {
                     compiler.CompileEnd(ref outcodeLength, ref outCode);
-                    AddToBarcode(outcodeLength, outCode);
+                    AddToBarcode(outCode, outcodeLength);
                 }
 
                 if (barcodeBufIndex > 0)
@@ -127,9 +121,12 @@ namespace FocalCompiler
             if (hexDebugOutput)
             {
                 debugHexFileStream.Close();
+                debugHexFileStream.Dispose();
 
                 if (Errors.Count > 0)
-                    File.Delete(outFilename);
+                {
+                    File.Delete(debugHexFilename);
+                }
             }
 
             Save();
@@ -139,7 +136,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private void AddToBarcode(int outcodeLength, byte[] outCode)
+        private void AddToBarcode(byte[] outCode, int outcodeLength)
         {
             if (outcodeLength > 0)
             {
@@ -194,16 +191,16 @@ namespace FocalCompiler
         /////////////////////////////////////////////////////////////
 
         private void GenOneBarcode(byte[] barcodeBuf,
-                                    int barcodeLength,
-                                    int leading,
-                                    int trailing,
-                                    out byte[] barcodeOut,
-                                    out int barcodeOutLen)
+                                   int barcodeLength,
+                                   int leading,
+                                   int trailing,
+                                   out byte[] barcodeOut,
+                                   out int barcodeOutLen)
         {
             byte[] barcode = new byte[MaxCodeBytesPerRow + NumHeaderBytesPerRow];
             int destIndex = NumHeaderBytesPerRow;
 
-            barcode[0] = (byte)checksum;
+            barcode[0] = (byte)lastChecksum;
             barcode[1] = (byte)((0x01 << 4) | (currentRow % 16));
             currentRow++;
             barcode[2] = (byte)((trailing << 4) | leading);
@@ -213,8 +210,8 @@ namespace FocalCompiler
                 barcode[destIndex++] = barcodeBuf[i];
             }
 
-            checksum = CalcChecksum(barcode, barcodeLength + NumHeaderBytesPerRow, 0);
-            barcode[0] = (byte)checksum;
+            lastChecksum = CalcChecksum(barcode, barcodeLength + NumHeaderBytesPerRow, 0);
+            barcode[0] = (byte)lastChecksum;
 
             barcodeOut = barcode;
             barcodeOutLen = barcodeLength + 3;
