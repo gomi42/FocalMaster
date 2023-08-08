@@ -77,18 +77,21 @@ namespace FocalMaster
             {
                 string errorMsg;
 
-                if (compiler.Compile (Line, out byte[] outCode, out errorMsg))
+                if (compiler.Compile (Line, out byte[][] outCodes, out errorMsg))
                 {
                     Errors.Add(string.Format ("Error line {0}: {1}", lineNr.ToString (), errorMsg));
                 }
 
                 if (Errors.Count == 0)
                 {
-                    int outcodeLength = outCode.Length;
-
-                    for (int i = 0; i < outcodeLength; i++)
+                    foreach (var outCode in outCodes)
                     {
-                        outFileStream.WriteByte (outCode[i]);
+                        int outcodeLength = outCode.Length;
+
+                        for (int i = 0; i < outcodeLength; i++)
+                        {
+                            outFileStream.WriteByte(outCode[i]);
+                        }
                     }
                 }
 

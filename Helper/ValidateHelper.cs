@@ -39,7 +39,7 @@ namespace FocalMaster.Helper
             {
                 string ErrorMsg;
 
-                if (compiler.Compile(line, out byte[] outCode, out ErrorMsg))
+                if (compiler.Compile(line, out byte[][] outCode, out ErrorMsg))
                 {
                     results.Add(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, lineNr, line));
                 }

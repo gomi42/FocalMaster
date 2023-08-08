@@ -20,6 +20,8 @@
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
+using System.Windows.Documents;
 using FocalXRomCodes;
 
 namespace FocalCompiler
@@ -87,19 +89,20 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        public bool CompileEnd (out byte[] outCode)
+        public bool CompileEnd (out byte[][] outCode)
         {
             return Compile (".END.", out outCode, out _);
         }
 
         /////////////////////////////////////////////////////////////
 
-        public bool Compile (string line, out byte[] outputCode, out string errorMsg)
+        public bool Compile (string line, out byte[][] outputCodes, out string errorMsg)
         {
             bool error = false;
             errorMsg = "";
             var outCode = new byte[20];
             int outCodeLength;
+            List<byte[]> codes = new List<byte[]>();
             Token token = new Token ();
 
             lex.GetFirstToken (line, ref token);
@@ -110,11 +113,11 @@ namespace FocalCompiler
                 {
                     case Token.TokType.Eol:
                     case Token.TokType.Comment:
-                        outputCode = new byte[0];
+                        outputCodes = new byte[0][];
                         return false;
                     
                     default:
-                        outputCode = new byte[0];
+                        outputCodes = new byte[0][];
                         errorMsg = "Statement after .END. detected";
                         return true;
                 }
@@ -151,15 +154,14 @@ namespace FocalCompiler
 
                 case Token.TokType.Int:
                 case Token.TokType.Number:
-                    outCodeLength = 0;
-
                     if (lastStatementWasNumber)
                     {
-                        outCode[0] = 0x00;
-                        outCodeLength++;
+                        var separatorCode = new byte[1];
+                        separatorCode[0] = 0x00;
+                        codes.Add(separatorCode);
                     }
 
-                    if (CompileNumber(token, outCode, ref outCodeLength, out errorMsg) != CompileResult.Ok)
+                    if (CompileNumber(token, outCode, out outCodeLength, out errorMsg) != CompileResult.Ok)
                     {
                         error = true;
                     }
@@ -175,6 +177,7 @@ namespace FocalCompiler
 
                 default:
                     outCodeLength = 0;
+                    lastStatementWasNumber = false;
                     error = true;
                     errorMsg = string.Format ("Unknown statement \"{0}\"", token.StringValue);
                     break;
@@ -190,12 +193,15 @@ namespace FocalCompiler
                     errorMsg = string.Format ("Unexpected parameter \"{0}\"", token.StringValue);
                 }
 
-                outputCode = new byte[outCodeLength];
-                Array.Copy(outCode, outputCode, outCodeLength);
+                var code = new byte[outCodeLength];
+                Array.Copy(outCode, code, outCodeLength);
+                codes.Add (code);
+
+                outputCodes = codes.ToArray();
             }
             else
             {
-                outputCode = new byte[0];
+                outputCodes = new byte[0][];
             }
 
             return error;

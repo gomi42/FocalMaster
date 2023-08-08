@@ -26,7 +26,7 @@ namespace FocalCompiler
 {
     internal abstract class BarcodeGenerator
     {
-        const int MaxDataBytesPerRow= 16;
+        const int MaxDataBytesPerRow = 16;
         const int NumHeaderBytesPerRow = 3;
         const int MaxCodeBytesPerRow = MaxDataBytesPerRow - NumHeaderBytesPerRow;
 
@@ -85,14 +85,14 @@ namespace FocalCompiler
             {
                 string ErrorMsg;
 
-                if (compiler.Compile(line, out byte[] outCode, out ErrorMsg))
+                if (compiler.Compile(line, out byte[][] outCodes, out ErrorMsg))
                 {
-                   Errors.Add(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, lineNr, line));
+                    Errors.Add(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, lineNr, line));
                 }
 
                 if (Errors.Count == 0)
                 {
-                    AddToBarcode(outCode);
+                    AddToBarcode(outCodes);
                 }
 
                 lineNr++;
@@ -103,8 +103,8 @@ namespace FocalCompiler
             {
                 if (!compiler.IsEndDetected)
                 {
-                    compiler.CompileEnd(out byte[] outCode);
-                    AddToBarcode(outCode);
+                    compiler.CompileEnd(out byte[][] outCodes);
+                    AddToBarcode(outCodes);
                 }
 
                 if (barcodeBufIndex > 0)
@@ -129,6 +129,16 @@ namespace FocalCompiler
             Save();
 
             return Errors.Count == 0;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private void AddToBarcode(byte[][] outCodes)
+        {
+            foreach (var outCode in outCodes)
+            {
+                AddToBarcode(outCode);
+            }
         }
 
         /////////////////////////////////////////////////////////////

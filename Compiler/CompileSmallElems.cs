@@ -87,10 +87,11 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileNumber (Token token, byte[] outCode, ref int outCodeLength, out string errorMsg)
+        CompileResult CompileNumber (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
+            outCodeLength = 0;
 
             foreach (char c in token.StringValue)
             {
