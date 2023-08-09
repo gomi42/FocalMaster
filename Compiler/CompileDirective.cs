@@ -25,7 +25,7 @@ namespace FocalCompiler
 {
     partial class Compiler
     {
-        CompileResult DoDirective (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult DoDirective (Token token, out byte[] outCode, out string errorMsg)
         {
             errorMsg = string.Empty;
             CompileResult result = CompileResult.Ok;
@@ -40,7 +40,7 @@ namespace FocalCompiler
 
                     if (token.TokenType != Token.TokType.Id)
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Identifier expected \"{0}\"", token.StringValue);
                         break;
@@ -54,20 +54,20 @@ namespace FocalCompiler
                         || token.TokenType == Token.TokType.Int
                         || token.TokenType == Token.TokType.Number))
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
                         errorMsg = string.Format ("Unexpected type \"{0}\"", token.StringValue);
                         break;
                     }
 
-                    outCodeLength = 0;
+                    outCode = null;
                     lex.AddDefine (define, token);
                     break;
                 }
 
                 case "end":
                 case ".end.":
-                    outCodeLength = 3;
+                    outCode = new byte[3];
                     outCode[0] = 0xC0;
                     outCode[1] = 0x00;
                     outCode[2] = 0x2F;
@@ -76,7 +76,7 @@ namespace FocalCompiler
                     break;
 
                 default:
-                    outCodeLength = 0;
+                    outCode = null;
                     result = CompileResult.UnknowStatement;
                     break;
             }

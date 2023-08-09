@@ -29,28 +29,23 @@ namespace FocalCompiler
     {
         private Dictionary<char, char> CharConv = new Dictionary<char, char> ();
 
-        private void InitCharConv()
-        {
-            CharConv.Add ('|', (char)0x21);
-        }
-
-        CompileResult CompileTextAppend (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileTextAppend (Token token, out byte[] outCode, out string errorMsg)
         {
             lex.GetToken (ref token);
 
             if (token.TokenType != Token.TokType.Text)
             {
-                outCodeLength = 0;
+                outCode = new byte[0];
                 errorMsg = string.Format ("Text expected \"{0}\"", token.StringValue);
                 return CompileResult.CompileError;
             }
 
-            return CompileText (token, outCode, out outCodeLength, out errorMsg, true);
+            return CompileText (token, out outCode, out errorMsg, true);
         }
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileText (Token token, byte[] outCode, out int outCodeLength, out string errorMsg, bool append = false)
+        CompileResult CompileText (Token token, out byte[] outCode, out string errorMsg, bool append = false)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
@@ -63,12 +58,15 @@ namespace FocalCompiler
 
             if (tokenLength <= 15)
             {
+                outCode = new byte[tokenLength + 1];
                 outCode[0] = (byte)(0xF0 + tokenLength);
 
-                outCodeLength = 1;
+                int outCodeLength = 1;
 
                 if (append)
+                {
                     outCode[outCodeLength++] = (byte)0x7f;  //append
+                }
 
                 foreach (char c in token.StringValue)
                 {
@@ -77,7 +75,7 @@ namespace FocalCompiler
             }
             else
             {
-                outCodeLength = 0;
+                outCode = null;
                 result = CompileResult.CompileError;
                 errorMsg = string.Format ("String to too long \"{0}\"", token.StringValue);
             }
@@ -87,22 +85,31 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileNumber (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileNumber (Token token, out byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
-            outCodeLength = 0;
+            outCode = new byte[token.StringValue.Length];
+            int outCodeLength = 0;
 
             foreach (char c in token.StringValue)
             {
                 if (c == '-')
+                {
                     outCode[outCodeLength] = 0x1C;
+                }
                 else if (c == 'E' || c == 'e')
+                {
                     outCode[outCodeLength] = 0x1B;
+                }
                 else if (c == '.')
+                {
                     outCode[outCodeLength] = 0x1A;
+                }
                 else
+                {
                     outCode[outCodeLength] = (byte)((byte)0x10 + (byte)c - (byte)'0');
+                }
 
                 outCodeLength++;
             }

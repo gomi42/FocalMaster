@@ -28,18 +28,18 @@ namespace FocalCompiler
 {
     partial class Compiler
     {
-        CompileResult CompileXRom (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileXRom (Token token, out byte[] outCode, out string errorMsg)
         {
             errorMsg = string.Empty;
             XRomCode xromCode;
 
             if (!xroms.FindMnemonic (token.StringValue, out xromCode))
             {
-                outCodeLength = 0;
+                outCode = null;
                 return CompileResult.UnknowStatement;
             }
 
-            outCodeLength = 2;
+            outCode = new byte[2];
 
             outCode[0] = (byte)(0xA0 + ((byte)xromCode.Rom >> 2));
             outCode[1] = (byte)((((byte)xromCode.Rom & 0x03) << 6) + (byte)xromCode.Function);

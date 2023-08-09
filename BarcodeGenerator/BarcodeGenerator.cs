@@ -135,9 +135,12 @@ namespace FocalCompiler
 
         private void AddToBarcode(byte[][] outCodes)
         {
-            foreach (var outCode in outCodes)
+            if (outCodes != null)
             {
-                AddToBarcode(outCode);
+                foreach (var outCode in outCodes)
+                {
+                    AddToBarcode(outCode);
+                }
             }
         }
 

@@ -25,44 +25,44 @@ namespace FocalCompiler
 {
     partial class Compiler
     {
-        private OpCodes opCodes = new OpCodes ();
+        private OpCodes opCodes = new OpCodes();
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType2 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileMnemonicType2(OpCode opCode, out byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
-            Token token = new Token ();
+            Token token = new Token();
 
-            lex.GetToken (ref token);
+            lex.GetToken(ref token);
 
             switch (token.TokenType)
             {
                 case Token.TokType.Int:
                     if (opCode.ShortParamRange == FctType.R_0_14 && 0 <= token.IntValue && token.IntValue <= 14)
                     {
-                        outCodeLength = 1;
+                        outCode = new byte[1];
                         outCode[0] = (byte)(((byte)opCode.ShortFunction + (byte)token.IntValue) & 0xff);
                     }
                     else
                     if (opCode.ShortParamRange == FctType.R_0_15 && 0 <= token.IntValue && token.IntValue <= 15)
                     {
-                        outCodeLength = 1;
+                        outCode = new byte[1];
                         outCode[0] = (byte)(((byte)opCode.ShortFunction | (byte)token.IntValue) & 0xff);
                     }
                     else
                     if (0 <= token.IntValue && token.IntValue <= 101)
                     {
-                        outCodeLength = 2;
+                        outCode = new byte[2];
                         outCode[0] = (byte)(opCode.Function & 0xff);
                         outCode[1] = (byte)(token.IntValue & 0xff);
                     }
                     else
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                     }
                     break;
 
@@ -70,28 +70,28 @@ namespace FocalCompiler
                 {
                     short Value;
 
-                    if (parameter.GetStackParamter (token.StringValue, out Value))
+                    if (parameter.GetStackParamter(token.StringValue, out Value))
                     {
-                        outCodeLength = 2;
+                        outCode = new byte[2];
                         outCode[0] = (byte)(opCode.Function & 0xff);
                         outCode[1] = (byte)(Value & 0xff);
                     }
                     else
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format ("Wrong stack parameter \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("Wrong stack parameter \"{0}\"", token.StringValue);
                     }
                     break;
                 }
 
                 case Token.TokType.Indirect:
-                    lex.GetToken (ref token);
+                    lex.GetToken(ref token);
 
                     switch (token.TokenType)
                     {
                         case Token.TokType.Int:
-                            outCodeLength = 2;
+                            outCode = new byte[2];
                             outCode[0] = (byte)(opCode.Function & 0xff);
                             outCode[1] = (byte)((token.IntValue & 0xff) | 0x80);
                             break;
@@ -100,33 +100,33 @@ namespace FocalCompiler
                         {
                             short Value;
 
-                            if (parameter.GetStackParamter (token.StringValue, out Value))
+                            if (parameter.GetStackParamter(token.StringValue, out Value))
                             {
-                                outCodeLength = 2;
+                                outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.Function & 0xff);
                                 outCode[1] = (byte)((Value & 0xff) | 0x80);
                             }
                             else
                             {
-                                outCodeLength = 0;
+                                outCode = null;
                                 result = CompileResult.CompileError;
-                                errorMsg = string.Format ("Wrong stack parameter \"{0}\"", token.StringValue);
+                                errorMsg = string.Format("Wrong stack parameter \"{0}\"", token.StringValue);
                             }
                             break;
                         }
 
-                    default:
-                        outCodeLength = 0;
-                        result = CompileResult.CompileError;
-                        errorMsg = string.Format ("Wrong parameter type or parameter expected");
-                        break;
+                        default:
+                            outCode = null;
+                            result = CompileResult.CompileError;
+                            errorMsg = string.Format("Wrong parameter type or parameter expected");
+                            break;
                     }
                     break;
-                        
+
                 default:
-                    outCodeLength = 0;
+                    outCode = null;
                     result = CompileResult.CompileError;
-                    errorMsg = string.Format ("Wrong parameter type or parameter expected");
+                    errorMsg = string.Format("Wrong parameter type or parameter expected");
                     break;
             }
 
@@ -135,48 +135,48 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType3 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileMnemonicType3(OpCode opCode, out byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
-            Token token = new Token ();
+            Token token = new Token();
 
-            lex.GetToken (ref token);
+            lex.GetToken(ref token);
 
             switch (token.TokenType)
             {
                 case Token.TokType.Int:
                     if (0 <= token.IntValue && token.IntValue <= 9)
                     {
-                        outCodeLength = 2;
+                        outCode = new byte[2];
                         outCode[0] = (byte)(opCode.Function & 0xff);
                         outCode[1] = (byte)(token.IntValue & 0xff);
                     }
                     else
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                     }
                     break;
 
                 case Token.TokType.Indirect:
-                    lex.GetToken (ref token);
+                    lex.GetToken(ref token);
 
                     switch (token.TokenType)
                     {
                         case Token.TokType.Int:
                             if (0 <= token.IntValue && token.IntValue <= 101)
                             {
-                                outCodeLength = 2;
+                                outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);
                                 outCode[1] = (byte)(token.IntValue | (byte)0x80);
                             }
                             else
                             {
-                                outCodeLength = 0;
+                                outCode = null;
                                 result = CompileResult.CompileError;
-                                errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                                errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                             }
                             break;
 
@@ -184,33 +184,33 @@ namespace FocalCompiler
                         {
                             short Value;
 
-                            if (parameter.GetStackParamter (token.StringValue, out Value))
+                            if (parameter.GetStackParamter(token.StringValue, out Value))
                             {
-                                outCodeLength = 2;
+                                outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);
                                 outCode[1] = (byte)(Value | (byte)0x80);
                             }
                             else
                             {
-                                outCodeLength = 0;
+                                outCode = null;
                                 result = CompileResult.CompileError;
-                                errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                                errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                             }
                             break;
                         }
 
                         default:
-                            outCodeLength = 0;
+                            outCode = null;
                             result = CompileResult.CompileError;
-                            errorMsg = string.Format ("Wrong parameter type or parameter expected");
+                            errorMsg = string.Format("Wrong parameter type or parameter expected");
                             break;
                     }
                     break;
 
                 default:
-                    outCodeLength = 0;
+                    outCode = null;
                     result = CompileResult.CompileError;
-                    errorMsg = string.Format ("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
+                    errorMsg = string.Format("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
                     break;
             }
 
@@ -219,48 +219,48 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType4 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileMnemonicType4(OpCode opCode, out byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
-            Token token = new Token ();
+            Token token = new Token();
 
-            lex.GetToken (ref token);
+            lex.GetToken(ref token);
 
             switch (token.TokenType)
             {
                 case Token.TokType.Int:
                     if (0 <= token.IntValue && token.IntValue <= 55)
                     {
-                        outCodeLength = 2;
+                        outCode = new byte[2];
                         outCode[0] = (byte)(opCode.Function & 0xff);
                         outCode[1] = (byte)(token.IntValue & 0xff);
                     }
                     else
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format ("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
                     }
                     break;
 
                 case Token.TokType.Indirect:
-                    lex.GetToken (ref token);
+                    lex.GetToken(ref token);
 
                     switch (token.TokenType)
                     {
                         case Token.TokType.Int:
                             if (0 <= token.IntValue && token.IntValue <= 101)
                             {
-                                outCodeLength = 2;
+                                outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);
                                 outCode[1] = (byte)(token.IntValue | (byte)0x80);
                             }
                             else
                             {
-                                outCodeLength = 0;
+                                outCode = null;
                                 result = CompileResult.CompileError;
-                                errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                                errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                             }
                             break;
 
@@ -268,33 +268,33 @@ namespace FocalCompiler
                         {
                             short Value;
 
-                            if (parameter.GetStackParamter (token.StringValue, out Value))
+                            if (parameter.GetStackParamter(token.StringValue, out Value))
                             {
-                                outCodeLength = 2;
+                                outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);
                                 outCode[1] = (byte)(Value | (byte)0x80);
                             }
                             else
                             {
-                                outCodeLength = 0;
+                                outCode = null;
                                 result = CompileResult.CompileError;
-                                errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                                errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                             }
                             break;
                         }
 
                         default:
-                            outCodeLength = 0;
+                            outCode = null;
                             result = CompileResult.CompileError;
-                            errorMsg = string.Format ("Wrong parameter type or parameter expected");
+                            errorMsg = string.Format("Wrong parameter type or parameter expected");
                             break;
                     }
                     break;
 
                 default:
-                    outCodeLength = 0;
+                    outCode = null;
                     result = CompileResult.CompileError;
-                    errorMsg = string.Format ("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
+                    errorMsg = string.Format("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
                     break;
             }
 
@@ -303,52 +303,52 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType5 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileMnemonicType5(OpCode opCode, out byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
-            Token token = new Token ();
+            Token token = new Token();
 
-            lex.GetToken (ref token);
+            lex.GetToken(ref token);
 
             switch (token.TokenType)
             {
                 case Token.TokType.Int:
                     if (opCode.ShortParamRange == FctType.R_0_14 && 0 <= token.IntValue && token.IntValue <= 14)
                     {
-                        outCodeLength = 1;
+                        outCode = new byte[1];
                         outCode[0] = (byte)(((byte)opCode.ShortFunction + (byte)token.IntValue) & 0xff);
                     }
                     else
-                        if (0 <= token.IntValue && token.IntValue <= 101)
-                        {
-                            outCodeLength = 2;
-                            outCode[0] = (byte)(opCode.Function & 0xff);
-                            outCode[1] = (byte)(token.IntValue & 0xff);
-                        }
-                        else
-                        {
-                            outCodeLength = 0;
-                            result = CompileResult.CompileError;
-                            errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
-                        }
+                    if (0 <= token.IntValue && token.IntValue <= 101)
+                    {
+                        outCode = new byte[2];
+                        outCode[0] = (byte)(opCode.Function & 0xff);
+                        outCode[1] = (byte)(token.IntValue & 0xff);
+                    }
+                    else
+                    {
+                        outCode = null;
+                        result = CompileResult.CompileError;
+                        errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
+                    }
                     break;
 
                 case Token.TokType.Letter:
                 {
                     short Value;
 
-                    if (parameter.GetShortLabelParamter (token.StringValue, out Value))
+                    if (parameter.GetShortLabelParamter(token.StringValue, out Value))
                     {
-                        outCodeLength = 2;
+                        outCode = new byte[2];
                         outCode[0] = (byte)(opCode.Function & 0xff);
                         outCode[1] = (byte)Value;
                     }
                     else
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                     }
                     break;
                 }
@@ -356,28 +356,31 @@ namespace FocalCompiler
                 case Token.TokType.Text:
                     if (token.StringValue.Length <= 14)
                     {
+                        outCode = new byte[token.StringValue.Length + 4];
                         outCode[0] = (byte)opCode.AlphaFunction;
                         outCode[1] = 0x00;
                         outCode[2] = (byte)(0xF1 + token.StringValue.Length);
                         outCode[3] = 0x00;
 
-                        outCodeLength = 4;
+                        int outCodeLength = 4;
 
                         foreach (char c in token.StringValue)
+                        {
                             outCode[outCodeLength++] = (byte)c;
+                        }
                     }
                     else
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                     }
                     break;
 
                 default:
-                    outCodeLength = 0;
+                    outCode = null;
                     result = CompileResult.CompileError;
-                    errorMsg = string.Format ("Wrong parameter type or parameter expected");
+                    errorMsg = string.Format("Wrong parameter type or parameter expected");
                     break;
             }
 
@@ -386,55 +389,55 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType6 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileMnemonicType6(OpCode opCode, out byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
-            Token token = new Token ();
+            Token token = new Token();
 
-            lex.GetToken (ref token);
+            lex.GetToken(ref token);
 
             switch (token.TokenType)
             {
                 case Token.TokType.Int:
                     if (opCode.ShortParamRange == FctType.R_0_14 && 0 <= token.IntValue && token.IntValue <= 14)
                     {
-                        outCodeLength = 2;
+                        outCode = new byte[2];
                         outCode[0] = (byte)(((byte)opCode.ShortFunction + (byte)token.IntValue) & 0xff);
                         outCode[1] = 0x00;
                     }
                     else
                         if (0 <= token.IntValue && token.IntValue <= 101)
-                        {
-                            outCodeLength = 3;
-                            outCode[0] = (byte)(opCode.Function & 0xff);
-                            outCode[1] = (byte)0x00;
-                            outCode[2] = (byte)(token.IntValue & 0xff);
-                        }
-                        else
-                        {
-                            outCodeLength = 0;
-                            result = CompileResult.CompileError;
-                            errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
-                        }
+                    {
+                        outCode = new byte[3];
+                        outCode[0] = (byte)(opCode.Function & 0xff);
+                        outCode[1] = (byte)0x00;
+                        outCode[2] = (byte)(token.IntValue & 0xff);
+                    }
+                    else
+                    {
+                        outCode = null;
+                        result = CompileResult.CompileError;
+                        errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
+                    }
                     break;
 
                 case Token.TokType.Letter:
                 {
                     short Value;
 
-                    if (parameter.GetShortLabelParamter (token.StringValue, out Value))
+                    if (parameter.GetShortLabelParamter(token.StringValue, out Value))
                     {
-                        outCodeLength = 3;
+                        outCode = new byte[3];
                         outCode[0] = (byte)(opCode.Function & 0xff);
                         outCode[1] = (byte)0x00;
                         outCode[2] = (byte)Value;
                     }
                     else
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                     }
                     break;
                 }
@@ -442,42 +445,47 @@ namespace FocalCompiler
                 case Token.TokType.Text:
                     if (token.StringValue.Length <= 14)
                     {
+                        outCode = new byte[token.StringValue.Length + 2];
                         outCode[0] = (byte)opCode.AlphaFunction;
                         outCode[1] = (byte)(0xF0 + token.StringValue.Length);
 
-                        outCodeLength = 2;
+                        int outCodeLength = 2;
 
                         foreach (char c in token.StringValue)
+                        {
                             outCode[outCodeLength++] = (byte)c;
+                        }
                     }
                     else
                     {
-                        outCodeLength = 0;
+                        outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format ("String too long \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("String too long \"{0}\"", token.StringValue);
                     }
                     break;
 
                 case Token.TokType.Indirect:
-                    lex.GetToken (ref token);
+                    lex.GetToken(ref token);
 
                     switch (token.TokenType)
                     {
                         case Token.TokType.Int:
                             if (0 <= token.IntValue && token.IntValue <= 101)
                             {
-                                outCodeLength = 2;
+                                outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);
                                 outCode[1] = (byte)(token.IntValue);
 
                                 if (opCode.IndirectOr)
+                                {
                                     outCode[1] |= (byte)0x80;
+                                }
                             }
                             else
                             {
-                                outCodeLength = 0;
+                                outCode = null;
                                 result = CompileResult.CompileError;
-                                errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                                errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                             }
                             break;
 
@@ -485,36 +493,38 @@ namespace FocalCompiler
                         {
                             short Value;
 
-                            if (parameter.GetStackParamter (token.StringValue, out Value))
+                            if (parameter.GetStackParamter(token.StringValue, out Value))
                             {
-                                outCodeLength = 2;
+                                outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);
                                 outCode[1] = (byte)(Value);
 
                                 if (opCode.IndirectOr)
+                                {
                                     outCode[1] |= (byte)0x80;
+                                }
                             }
                             else
                             {
-                                outCodeLength = 0;
+                                outCode = null;
                                 result = CompileResult.CompileError;
-                                errorMsg = string.Format ("Parameter out of range \"{0}\"", token.StringValue);
+                                errorMsg = string.Format("Parameter out of range \"{0}\"", token.StringValue);
                             }
                             break;
                         }
 
                         default:
-                            outCodeLength = 0;
+                            outCode = null;
                             result = CompileResult.CompileError;
-                            errorMsg = string.Format ("Wrong parameter type or parameter expected");
+                            errorMsg = string.Format("Wrong parameter type or parameter expected");
                             break;
                     }
                     break;
 
                 default:
-                    outCodeLength = 0;
+                    outCode = null;
                     result = CompileResult.CompileError;
-                    errorMsg = string.Format ("Wrong parameter type or parameter expected");
+                    errorMsg = string.Format("Wrong parameter type or parameter expected");
                     break;
             }
 
@@ -523,44 +533,43 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonicType7 (OpCode opCode, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileMnemonicType7(OpCode opCode, out byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
-            Token Token = new Token ();
+            Token Token = new Token();
 
             int rom;
 
-            lex.GetToken (ref Token);
+            lex.GetToken(ref Token);
 
             if (!(Token.TokenType == Token.TokType.Int && 0 <= Token.IntValue && Token.IntValue <= 31))
             {
-                outCodeLength = 0;
-                errorMsg = string.Format ("Parameter 1 out of range \"{0}\"", Token.StringValue);
+                outCode = null;
+                errorMsg = string.Format("Parameter 1 out of range \"{0}\"", Token.StringValue);
                 return CompileResult.CompileError;
             }
 
             rom = Token.IntValue;
-            lex.GetToken (ref Token);
+            lex.GetToken(ref Token);
 
             if (Token.TokenType != Token.TokType.Komma)
             {
-                outCodeLength = 0;
-                errorMsg = string.Format ("',' expected instead of '{0}'", Token.StringValue);
+                outCode = null;
+                errorMsg = string.Format("',' expected instead of '{0}'", Token.StringValue);
                 return CompileResult.CompileError;
             }
 
-            lex.GetToken (ref Token);
+            lex.GetToken(ref Token);
 
             if (!(Token.TokenType == Token.TokType.Int && 0 <= Token.IntValue && Token.IntValue <= 63))
             {
-                outCodeLength = 0;
-                errorMsg = string.Format ("Parameter 2 out of range \"{0}\"", Token.StringValue);
+                outCode = null;
+                errorMsg = string.Format("Parameter 2 out of range \"{0}\"", Token.StringValue);
                 return CompileResult.CompileError;
             }
 
-            outCodeLength = 2;
-
+            outCode = new byte[2];
             outCode[0] = (byte)(opCode.Function + ((byte)rom >> 2));
             outCode[1] = (byte)((((byte)rom & 0x03) << 6) + (byte)Token.IntValue);
 
@@ -569,50 +578,51 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        CompileResult CompileMnemonic (Token token, byte[] outCode, out int outCodeLength, out string errorMsg)
+        CompileResult CompileMnemonic(Token token, out byte[] outCode, out string errorMsg)
         {
             CompileResult result = CompileResult.Ok;
             errorMsg = string.Empty;
-            outCodeLength = 0;
             OpCode opCode;
 
-            if (!opCodes.FindMnemonic (token.StringValue, out opCode))
+            if (!opCodes.FindMnemonic(token.StringValue, out opCode))
             {
+                outCode = null;
                 return CompileResult.UnknowStatement;
             }
 
             switch (opCode.FctType)
             {
                 case FctType.NoParam:
-                    outCodeLength = 1;
+                    outCode = new byte[1];
                     outCode[0] = (byte)(opCode.Function & 0xff);
                     break;
 
                 case FctType.R_0_101_Stack:
-                    result = CompileMnemonicType2 (opCode, outCode, out outCodeLength, out errorMsg);
+                    result = CompileMnemonicType2(opCode, out outCode, out errorMsg);
                     break;
 
                 case FctType.R_0_9:
-                    result = CompileMnemonicType3 (opCode, outCode, out outCodeLength, out errorMsg);
+                    result = CompileMnemonicType3(opCode, out outCode, out errorMsg);
                     break;
 
                 case FctType.R_0_55:
-                    result = CompileMnemonicType4 (opCode, outCode, out outCodeLength, out errorMsg);
+                    result = CompileMnemonicType4(opCode, out outCode, out errorMsg);
                     break;
 
                 case FctType.R_0_99_A_J_Alpha1:
-                    result = CompileMnemonicType5 (opCode, outCode, out outCodeLength, out errorMsg);
+                    result = CompileMnemonicType5(opCode, out outCode, out errorMsg);
                     break;
 
                 case FctType.R_0_99_A_J_Alpha2:
-                    result = CompileMnemonicType6 (opCode, outCode, out outCodeLength, out errorMsg);
+                    result = CompileMnemonicType6(opCode, out outCode, out errorMsg);
                     break;
 
                 case FctType.XRom:
-                    result = CompileMnemonicType7 (opCode, outCode, out outCodeLength, out errorMsg);
+                    result = CompileMnemonicType7(opCode, out outCode, out errorMsg);
                     break;
 
                 default:
+                    outCode = null;
                     break;
             }
 
