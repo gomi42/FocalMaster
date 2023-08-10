@@ -210,7 +210,7 @@ namespace FocalCompiler
                 default:
                     outCode = null;
                     result = CompileResult.CompileError;
-                    errorMsg = string.Format("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
+                    errorMsg = string.Format("Wrong parameter type or parameter out of range \"{0}\"", token.StringValue);
                     break;
             }
 
@@ -240,7 +240,7 @@ namespace FocalCompiler
                     {
                         outCode = null;
                         result = CompileResult.CompileError;
-                        errorMsg = string.Format("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
+                        errorMsg = string.Format("Wrong parameter type or parameter out of range \"{0}\"", token.StringValue);
                     }
                     break;
 
@@ -294,7 +294,7 @@ namespace FocalCompiler
                 default:
                     outCode = null;
                     result = CompileResult.CompileError;
-                    errorMsg = string.Format("Wronge parameter type or parameter out of range \"{0}\"", token.StringValue);
+                    errorMsg = string.Format("Wrong parameter type or parameter out of range \"{0}\"", token.StringValue);
                     break;
             }
 
