@@ -31,11 +31,11 @@ namespace FocalCompiler
         private const double mmToPt = 72 / 2.54 / 10;
         
         private const double TopBorder = 10 * mmToPt;
-        private const double LeftBorder = 30 * mmToPt;
+        private const double LeftBorder = 20 * mmToPt;
 
-        private const double BarGapWidth = 0.45 * mmToPt;
-        private const double NarrowBarWidth = 0.45 * mmToPt;
-        private const double WideBarWidth = 2 * NarrowBarWidth;
+        private const double BarGapWidth = 0.5 * mmToPt;
+        private const double ZerorBarWidth = 0.5 * mmToPt;
+        private const double OneBarWidth = 2 * ZerorBarWidth;
         private const double Barheight = 9.0 * mmToPt;
         private const double BarGapHeight = 1 * mmToPt;
 
@@ -117,16 +117,16 @@ namespace FocalCompiler
         {
             const int BitsPerNibble = 4;
 
-            startPattern = new XForm(document, XUnit.FromPoint(2 * NarrowBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
+            startPattern = new XForm(document, XUnit.FromPoint(2 * ZerorBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
             XGraphics formGfx = XGraphics.FromForm(startPattern);
-            formGfx.DrawRectangle(XBrushes.Black, 0, 0, NarrowBarWidth, Barheight);
-            formGfx.DrawRectangle(XBrushes.Black, NarrowBarWidth + BarGapWidth, 0, NarrowBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, 0, 0, ZerorBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, ZerorBarWidth + BarGapWidth, 0, ZerorBarWidth, Barheight);
             formGfx.Dispose();
 
-            endPattern = new XForm(document, XUnit.FromPoint(NarrowBarWidth + WideBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
+            endPattern = new XForm(document, XUnit.FromPoint(ZerorBarWidth + OneBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
             formGfx = XGraphics.FromForm(endPattern);
-            formGfx.DrawRectangle(XBrushes.Black, 0, 0, WideBarWidth, Barheight);
-            formGfx.DrawRectangle(XBrushes.Black, WideBarWidth + NarrowBarWidth, 0, NarrowBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, 0, 0, OneBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, OneBarWidth + ZerorBarWidth, 0, ZerorBarWidth, Barheight);
             formGfx.Dispose();
 
             nibblePatterns = new XForm[1 << BitsPerNibble];
@@ -143,7 +143,7 @@ namespace FocalCompiler
                 }
 
                 nibble = i;
-                var width = (BitsPerNibble - wideBars) * NarrowBarWidth + wideBars * WideBarWidth + (BitsPerNibble - 1) * BarGapWidth;
+                var width = (BitsPerNibble - wideBars) * ZerorBarWidth + wideBars * OneBarWidth + (BitsPerNibble - 1) * BarGapWidth;
                 XForm pattern = new XForm(document, XUnit.FromPoint(width), XUnit.FromMillimeter(Barheight));
                 formGfx = XGraphics.FromForm(pattern);
                 x = 0;
@@ -152,13 +152,13 @@ namespace FocalCompiler
                 {
                     if ((nibble & 0x08) != 0)
                     {
-                        formGfx.DrawRectangle(XBrushes.Black, x, 0, WideBarWidth, Barheight);
-                        x += WideBarWidth + BarGapWidth;
+                        formGfx.DrawRectangle(XBrushes.Black, x, 0, OneBarWidth, Barheight);
+                        x += OneBarWidth + BarGapWidth;
                     }
                     else
                     {
-                        formGfx.DrawRectangle(XBrushes.Black, x, 0, NarrowBarWidth, Barheight);
-                        x += NarrowBarWidth + BarGapWidth;
+                        formGfx.DrawRectangle(XBrushes.Black, x, 0, ZerorBarWidth, Barheight);
+                        x += ZerorBarWidth + BarGapWidth;
                     }
 
                     nibble <<= 1;
@@ -183,7 +183,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        protected override void AddBarcode(byte[] barcode, int barcodeLen, int currentRow, int fromLine, int toLine)
+        protected override void AddBarcodeRow(byte[] barcode, int currentRow, int fromLine, int toLine)
         {
             double rowHeight;
 
@@ -202,6 +202,7 @@ namespace FocalCompiler
             rowHeight = rowHeaderFont.Height;
             currentY += rowHeight;
 
+            int barcodeLen = barcode.Length;
             double x = LeftBorder;
 
             grafics.DrawImage(startPattern, x, currentY);

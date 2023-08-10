@@ -177,7 +177,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        protected override void AddBarcode (byte[] barcode, int barcodeLen, int currentRow, int fromLine, int toLine)
+        protected override void AddBarcodeRow (byte[] barcode, int currentRow, int fromLine, int toLine)
         {
             if (drawingVisual == null)
             {
@@ -196,6 +196,7 @@ namespace FocalCompiler
             drawingContext.DrawText (text, new System.Windows.Point (LeftBorder, currentY));
             currentY += text.Height;
 
+            int barcodeLen = barcode.Length;
             double x = LeftBorder;
 
             x += AddZeroBar (x);

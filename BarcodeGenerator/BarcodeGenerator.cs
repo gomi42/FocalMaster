@@ -19,6 +19,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -30,11 +31,8 @@ namespace FocalCompiler
         const int NumHeaderBytesPerRow = 3;
         const int MaxCodeBytesPerRow = MaxDataBytesPerRow - NumHeaderBytesPerRow;
 
-
         /////////////////////////////
 
-        private StreamWriter debugHexFileStream;
-        private string debugHexFilename;
         private int lastChecksum;
         private int currentRow;
 
@@ -42,13 +40,14 @@ namespace FocalCompiler
         private int barcodeBufIndex = 0;
         private int trailing = 0;
 
-        private int lineNr = 1;
-        private int destLineNr = 1;
-        private int destFromLine = 1;
+        private int currentStatementLineNr = 0;
+        private int firstStatementLineNrOfBarcodeRow;
 
         private Compiler compiler;
 
-        private bool genHex;
+        private bool genDebugHex;
+        private string debugHexFilename;
+        private StreamWriter debugHexFileStream;
 
         /////////////////////////////////////////////////////////////
 
@@ -59,27 +58,18 @@ namespace FocalCompiler
         protected bool Generate(StreamReader inFileStream, bool hexDebugOutput)
         {
             Errors = new List<string>();
-            genHex = hexDebugOutput;
-
-            if (hexDebugOutput)
+            genDebugHex = hexDebugOutput;
+            
+            if (!PrepareDebugOutput())
             {
-                debugHexFilename = Path.ChangeExtension("debug.test", ".hex");
-
-                try
-                {
-                    debugHexFileStream = new StreamWriter(debugHexFilename, false, System.Text.Encoding.ASCII);
-                }
-                catch
-                {
-                    Errors.Add($"Cannot create debug file {debugHexFilename}");
-                    return false;
-                }
+                return false;
             }
 
             barcodeBuf = new byte[MaxCodeBytesPerRow];
             compiler = new Compiler();
 
             string line = inFileStream.ReadLine();
+            int sourceLineNr = 1;
 
             while (line != null)
             {
@@ -87,16 +77,16 @@ namespace FocalCompiler
 
                 if (compiler.Compile(line, out byte[][] outCodes, out ErrorMsg))
                 {
-                    Errors.Add(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, lineNr, line));
+                    Errors.Add(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, sourceLineNr, line));
                 }
 
                 if (Errors.Count == 0)
                 {
-                    AddToBarcode(outCodes);
+                    AddToBarcodeRow(outCodes);
                 }
 
-                lineNr++;
                 line = inFileStream.ReadLine();
+                sourceLineNr++;
             }
 
             if (Errors.Count == 0)
@@ -104,54 +94,50 @@ namespace FocalCompiler
                 if (!compiler.IsEndDetected)
                 {
                     compiler.CompileEnd(out byte[][] outCodes);
-                    AddToBarcode(outCodes);
+                    AddToBarcodeRow(outCodes);
                 }
 
                 if (barcodeBufIndex > 0)
                 {
-                    OutputBarcode(barcodeBuf, barcodeBufIndex, 0, trailing, currentRow + 1, destFromLine, lineNr);
+                    FlushBarcodeRow(0);
                 }
             }
 
             inFileStream.Close();
-
-            if (hexDebugOutput)
-            {
-                debugHexFileStream.Close();
-                debugHexFileStream.Dispose();
-
-                if (Errors.Count > 0)
-                {
-                    File.Delete(debugHexFilename);
-                }
-            }
-
             Save();
+            FinalizeDebugOutput();
 
             return Errors.Count == 0;
         }
 
         /////////////////////////////////////////////////////////////
 
-        private void AddToBarcode(byte[][] outCodes)
+        private void AddToBarcodeRow(byte[][] outCodes)
         {
             if (outCodes != null)
             {
                 foreach (var outCode in outCodes)
                 {
-                    AddToBarcode(outCode);
+                    AddToBarcodeRow(outCode);
                 }
             }
         }
 
         /////////////////////////////////////////////////////////////
 
-        private void AddToBarcode(byte[] outCode)
+        private void AddToBarcodeRow(byte[] outCode)
         {
             int outcodeLength = outCode.Length;
 
             if (outcodeLength > 0)
             {
+                currentStatementLineNr++;
+
+                if (barcodeBufIndex == 0)
+                {
+                    firstStatementLineNrOfBarcodeRow = currentStatementLineNr;
+                }
+
                 for (int i = 0; i < outcodeLength; i++)
                 {
                     barcodeBuf[barcodeBufIndex] = outCode[i];
@@ -160,32 +146,57 @@ namespace FocalCompiler
                     if (barcodeBufIndex == MaxCodeBytesPerRow)
                     {
                         int leading = 0;
-                        int newTrailing = 0;
-                        int newFromLine = destLineNr + 1;
+                        int nextTrailing = 0;
 
                         if (outcodeLength != i + 1)
                         {
                             leading = i + 1;
-                            newTrailing = outcodeLength - leading;
-                            newFromLine = destLineNr;
+                            nextTrailing = outcodeLength - leading;
                         }
 
-                        OutputBarcode(barcodeBuf, MaxCodeBytesPerRow, leading, trailing, currentRow + 1, destFromLine, destLineNr);
-                        trailing = newTrailing;
+                        FlushBarcodeRow(leading);
+                        trailing = nextTrailing;
                         barcodeBufIndex = 0;
-                        destFromLine = newFromLine;
+                        firstStatementLineNrOfBarcodeRow = currentStatementLineNr;
                     }
                 }
-
-                destLineNr++;
             }
         }
 
         /////////////////////////////////////////////////////////////
 
-        int CalcChecksum(byte[] bytes, int bufLen, int lastCheck)
+        private void GenerateFinalBarcodeRowData(int leading,
+                                                 out byte[] barcodeOut)
         {
-            int check = lastCheck;
+            byte[] barcode = new byte[barcodeBufIndex + NumHeaderBytesPerRow];
+
+            barcode[0] = (byte)lastChecksum;
+            barcode[1] = (byte)((0x01 << 4) | (currentRow % 16));
+            barcode[2] = (byte)((trailing << 4) | leading);
+
+            Array.Copy(barcodeBuf, 0, barcode, NumHeaderBytesPerRow, barcodeBufIndex);
+
+            lastChecksum = CalcChecksum(barcode, barcodeBufIndex + NumHeaderBytesPerRow);
+            barcode[0] = (byte)lastChecksum;
+
+            barcodeOut = barcode;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private void FlushBarcodeRow(int leading)
+        {
+            GenerateFinalBarcodeRowData(leading, out byte[] barcode);
+            AddBarcodeRow(barcode, currentRow + 1, firstStatementLineNrOfBarcodeRow, currentStatementLineNr);
+            OutputDebugBarcodeRow(barcode);
+            currentRow++;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        int CalcChecksum(byte[] bytes, int bufLen)
+        {
+            int check = 0;
 
             for (int i = 0; i < bufLen; i++)
             {
@@ -202,66 +213,64 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private void GenOneBarcode(byte[] barcodeBuf,
-                                   int barcodeLength,
-                                   int leading,
-                                   int trailing,
-                                   out byte[] barcodeOut,
-                                   out int barcodeOutLen)
+        private bool PrepareDebugOutput()
         {
-            byte[] barcode = new byte[MaxCodeBytesPerRow + NumHeaderBytesPerRow];
-            int destIndex = NumHeaderBytesPerRow;
-
-            barcode[0] = (byte)lastChecksum;
-            barcode[1] = (byte)((0x01 << 4) | (currentRow % 16));
-            currentRow++;
-            barcode[2] = (byte)((trailing << 4) | leading);
-
-            for (int i = 0; i < barcodeLength; i++)
+            if (genDebugHex)
             {
-                barcode[destIndex++] = barcodeBuf[i];
+                debugHexFilename = Path.ChangeExtension("debug.test", ".hex");
+
+                try
+                {
+                    debugHexFileStream = new StreamWriter(debugHexFilename, false, System.Text.Encoding.ASCII);
+                }
+                catch
+                {
+                    Errors.Add($"Cannot create debug file {debugHexFilename}");
+                    return false;
+                }
             }
 
-            lastChecksum = CalcChecksum(barcode, barcodeLength + NumHeaderBytesPerRow, 0);
-            barcode[0] = (byte)lastChecksum;
-
-            barcodeOut = barcode;
-            barcodeOutLen = barcodeLength + 3;
+            return true;
         }
 
         /////////////////////////////////////////////////////////////
 
-        private void DumpBarcode(byte[] barcode, int barcodeLen, int currentRow, int fromLine, int toLine)
+        private void OutputDebugBarcodeRow(byte[] barcode)
         {
-            string res = string.Empty;
-
-            for (int i = 0; i < barcodeLen; i++)
+            if (genDebugHex)
             {
-                res += barcode[i].ToString("X2") + " ";
+                string res = string.Empty;
+                int barcodeLen = barcode.Length;
+
+                for (int i = 0; i < barcodeLen; i++)
+                {
+                    res += barcode[i].ToString("X2") + " ";
+                }
+
+                debugHexFileStream.WriteLine(string.Format("Row {0} ({1} - {2})", currentRow + 1, firstStatementLineNrOfBarcodeRow, currentStatementLineNr));
+                debugHexFileStream.WriteLine(res);
             }
-
-            debugHexFileStream.WriteLine(string.Format("Row {0} ({1} - {2})", currentRow, fromLine, toLine));
-            debugHexFileStream.WriteLine(res);
-
         }
 
         /////////////////////////////////////////////////////////////
 
-        private void OutputBarcode(byte[] barcodeBuf, int barcodeLength, int leading, int trailing, int currentRow, int fromLine, int toLine)
+        private void FinalizeDebugOutput()
         {
-            byte[] barcode;
-            int barcodeLen;
-
-            GenOneBarcode(barcodeBuf, barcodeLength, leading, trailing, out barcode, out barcodeLen);
-            AddBarcode(barcode, barcodeLen, currentRow, fromLine, toLine);
-
-            if (genHex)
+            if (genDebugHex)
             {
-                DumpBarcode(barcode, barcodeLen, currentRow, fromLine, toLine);
+                debugHexFileStream.Close();
+                debugHexFileStream.Dispose();
+
+                if (Errors.Count > 0)
+                {
+                    File.Delete(debugHexFilename);
+                }
             }
         }
+        
+        /////////////////////////////////////////////////////////////
 
-        protected abstract void AddBarcode(byte[] barcode, int barcodeLen, int currentRow, int fromLine, int toLine);
+        protected abstract void AddBarcodeRow(byte[] barcode, int currentRow, int fromLine, int toLine);
 
         protected abstract void Save();
     }
