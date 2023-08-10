@@ -152,6 +152,16 @@ namespace FocalCompiler
                         {
                             leading = i + 1;
                             nextTrailing = outcodeLength - leading;
+
+                            if (leading > MaxCodeBytesPerRow)
+                            {
+                                leading = MaxCodeBytesPerRow;
+                            }
+
+                            if (nextTrailing > MaxCodeBytesPerRow)
+                            {
+                                nextTrailing = MaxCodeBytesPerRow;
+                            }
                         }
 
                         FlushBarcodeRow(leading);
