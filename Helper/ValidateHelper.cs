@@ -21,6 +21,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using FocalCompiler;
 
 namespace FocalMaster.Helper
@@ -31,9 +33,12 @@ namespace FocalMaster.Helper
         {
             List<string> results = new List<string>();
             var compiler = new Compiler();
+            string exeFilename = Assembly.GetExecutingAssembly().Location;
+            compiler.SetXromFile(Path.Combine(Path.GetDirectoryName(exeFilename), "XRomCodes.txt"));
+
             int lineNr = 1;
 
-            var lines = focal.Split(new char[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = focal.Split(new string[] { "\r\n" }, StringSplitOptions.None);
 
             foreach (var line in lines)
             {

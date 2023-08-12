@@ -20,6 +20,7 @@
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
 using System;
+using FocalMaster.Helper;
 
 namespace FocalCompiler
 {
@@ -366,7 +367,7 @@ namespace FocalCompiler
 
                         foreach (char c in token.StringValue)
                         {
-                            outCode[outCodeLength++] = (byte)c;
+                            outCode[outCodeLength++] = (byte)HP41CharacterConverter.ToHp41(c);
                         }
                     }
                     else
@@ -453,7 +454,7 @@ namespace FocalCompiler
 
                         foreach (char c in token.StringValue)
                         {
-                            outCode[outCodeLength++] = (byte)c;
+                            outCode[outCodeLength++] = (byte)HP41CharacterConverter.ToHp41(c);
                         }
                     }
                     else

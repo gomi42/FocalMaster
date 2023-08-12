@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 
 namespace FocalCompiler
 {
@@ -55,7 +56,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        protected bool Generate(StreamReader inFileStream, bool hexDebugOutput)
+        protected bool Generate(string focal, bool hexDebugOutput)
         {
             Errors = new List<string>();
             genDebugHex = hexDebugOutput;
@@ -65,13 +66,16 @@ namespace FocalCompiler
                 return false;
             }
 
-            barcodeBuf = new byte[MaxCodeBytesPerRow];
             compiler = new Compiler();
+            string exeFilename = Assembly.GetExecutingAssembly().Location;
+            compiler.SetXromFile(Path.Combine(Path.GetDirectoryName(exeFilename), "XRomCodes.txt"));
+            
+            barcodeBuf = new byte[MaxCodeBytesPerRow];
+            string[] lines = focal.Split(new string[] { "\r\n" }, StringSplitOptions.None);
 
-            string line = inFileStream.ReadLine();
             int sourceLineNr = 1;
 
-            while (line != null)
+            foreach (var line in lines)
             {
                 string ErrorMsg;
 
@@ -85,7 +89,6 @@ namespace FocalCompiler
                     AddToBarcodeRow(outCodes);
                 }
 
-                line = inFileStream.ReadLine();
                 sourceLineNr++;
             }
 
@@ -103,7 +106,6 @@ namespace FocalCompiler
                 }
             }
 
-            inFileStream.Close();
             Save();
             FinalizeDebugOutput();
 

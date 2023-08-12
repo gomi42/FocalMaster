@@ -62,11 +62,7 @@ namespace FocalCompiler
 
         public bool GenerateVisual(string focal, out DrawingVisual visual)
         {
-            byte[] byteArray = Encoding.ASCII.GetBytes(focal);
-            MemoryStream stream = new MemoryStream(byteArray);
-            StreamReader reader = new StreamReader(stream);
-
-            var result = Generate(reader, false);
+            var result = Generate(focal, false);
             visual = drawingVisual;
 
             return result;
@@ -86,7 +82,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private void InitImage()
+        private void InitVisual()
         {
             currentY = TopBorder;
 
@@ -119,7 +115,7 @@ namespace FocalCompiler
 
             if (drawingVisual == null)
             {
-                InitImage();
+                InitVisual();
             }
 
             string s = string.Format("Row {0} ({1} - {2})", currentRow, fromLine, toLine);

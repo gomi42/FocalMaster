@@ -65,13 +65,9 @@ namespace FocalCompiler
 
         public bool GeneratePdf(string focal, string pdfFilename)
         {
-            byte[] byteArray = Encoding.ASCII.GetBytes(focal);
-            MemoryStream stream = new MemoryStream(byteArray);
-            StreamReader reader = new StreamReader(stream);
-
             filename = pdfFilename;
 
-            return Generate(reader, false);
+            return Generate(focal, false);
         }
 
         /////////////////////////////////////////////////////////////
@@ -98,6 +94,19 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
+        private void ClosePage()
+        {
+            if (document == null || page == null)
+            {
+                return;
+            }
+
+            grafics.Dispose();
+            page = null;
+        }
+
+        /////////////////////////////////////////////////////////////
+
         private void InitDocument()
         {
             document = new PdfDocument();
@@ -108,12 +117,12 @@ namespace FocalCompiler
             pageHeaderFont = new XFont("Arial", 10, XFontStyle.Regular);
             rowHeaderFont = new XFont("Arial", 9, XFontStyle.Regular);
 
-            CreateBarPatterns();
+            CreateNibblePatterns();
         }
 
         /////////////////////////////////////////////////////////////
 
-        private void CreateBarPatterns()
+        private void CreateNibblePatterns()
         {
             const int BitsPerNibble = 4;
 
@@ -135,16 +144,17 @@ namespace FocalCompiler
             for (int i = 0; i < (1 << BitsPerNibble); i++)
             {
                 int nibble = i;
-                int wideBars;
+                int numberOneBars = 0;
 
-                for (wideBars = 0; nibble != 0; wideBars++)
+                while (nibble != 0)
                 {
                     nibble &= nibble - 1; // this clears the LSB-most set bit
+                    numberOneBars++;
                 }
 
                 nibble = i;
-                var width = (BitsPerNibble - wideBars) * ZerorBarWidth + wideBars * OneBarWidth + (BitsPerNibble - 1) * BarGapWidth;
-                XForm pattern = new XForm(document, XUnit.FromPoint(width), XUnit.FromMillimeter(Barheight));
+                var width = (BitsPerNibble - numberOneBars) * ZerorBarWidth + numberOneBars * OneBarWidth + (BitsPerNibble - 1) * BarGapWidth;
+                XForm pattern = new XForm(document, XUnit.FromPoint(width), XUnit.FromPoint(Barheight));
                 formGfx = XGraphics.FromForm(pattern);
                 x = 0;
 
@@ -178,7 +188,9 @@ namespace FocalCompiler
                 return;
             }
 
+            ClosePage();
             document.Save(filename);
+            document.Dispose();
         }
 
         /////////////////////////////////////////////////////////////
@@ -194,11 +206,11 @@ namespace FocalCompiler
 
             string s = string.Format("Row {0} ({1} - {2})", currentRow, fromLine, toLine);
             grafics.DrawString(s,
-                           rowHeaderFont,
-                           XBrushes.Black,
-                           LeftBorder,
-                           currentY,
-                           XStringFormats.TopLeft);
+                               rowHeaderFont,
+                               XBrushes.Black,
+                               LeftBorder,
+                               currentY,
+                               XStringFormats.TopLeft);
             rowHeight = rowHeaderFont.Height;
             currentY += rowHeight;
 
@@ -229,7 +241,7 @@ namespace FocalCompiler
 
             if (currentY + rowHeight > page.Height - TopBorder)
             {
-                page = null;
+                ClosePage();
                 currentPage++;
             }
         }

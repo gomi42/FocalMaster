@@ -36,22 +36,6 @@ namespace FocalMaster
 
         public bool CompileString(string focal, string outputFilename)
         {
-            Errors = new List<string>();
-            byte[] byteArray = Encoding.ASCII.GetBytes(focal);
-
-            using (MemoryStream stream = new MemoryStream(byteArray))
-            {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    return Compile(reader, outputFilename);
-                }
-            }
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        private bool Compile(StreamReader inFileStream, string outputFilename)
-        {
             FileStream outFileStream;
 
             try
@@ -65,19 +49,21 @@ namespace FocalMaster
             }
 
             /////////////////////////////
+            
+            Errors = new List<string>();
 
             Compiler compiler = new Compiler();
             string exeFilename = Assembly.GetExecutingAssembly().Location;
             compiler.SetXromFile(Path.Combine(Path.GetDirectoryName(exeFilename), "XRomCodes.txt"));
 
             int lineNr = 1;
-            string Line = inFileStream.ReadLine();
+            string[] lines = focal.Split(new string[] { "\r\n" }, StringSplitOptions.None);
 
-            while (Line != null)
+            foreach (var line in lines)
             {
                 string errorMsg;
 
-                if (compiler.Compile(Line, out byte[][] outCodes, out errorMsg))
+                if (compiler.Compile(line, out byte[][] outCodes, out errorMsg))
                 {
                     Errors.Add(string.Format("Error line {0}: {1}", lineNr.ToString(), errorMsg));
                 }
@@ -96,7 +82,6 @@ namespace FocalMaster
                 }
 
                 lineNr++;
-                Line = inFileStream.ReadLine();
             }
 
             outFileStream.Close();

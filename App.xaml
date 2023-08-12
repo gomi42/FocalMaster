@@ -103,18 +103,10 @@
                                                                 Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
                                                                 To="{StaticResource ContentBackgroundColor}"
                                                                 Duration="0" />
-                                                <ColorAnimation Storyboard.TargetName="Border"
-                                                                Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
-                                                                To="{StaticResource NaviButtonSelectedBackgroundColor}"
-                                                                Duration="0" />
                                                 <ThicknessAnimation Storyboard.TargetName="Border"
                                                                     Storyboard.TargetProperty="BorderThickness"
                                                                     To="1,1,1,0"
                                                                     Duration="0" />
-                                                <ColorAnimation Storyboard.TargetName="ContentSite"
-                                                                Storyboard.TargetProperty="(TextElement.Foreground).(SolidColorBrush.Color)"
-                                                                To="Black"
-                                                                Duration="0" />
                                             </Storyboard>
                                         </VisualState>
                                     </VisualStateGroup>

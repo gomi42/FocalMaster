@@ -78,6 +78,7 @@
     <Compile Include="Compiler\CompileSmallElems.cs" />
     <Compile Include="Compiler\CompileXRom.cs" />
     <Compile Include="Controls\DivideByTwoConverter.cs" />
+    <Compile Include="Helper\HP41CharacterConverter.cs" />
     <Compile Include="Helper\ValidateHelper.cs" />
     <Compile Include="RawGenerator\FocalRawGenerator.cs" />
     <Compile Include="Compiler\Lex.cs" />

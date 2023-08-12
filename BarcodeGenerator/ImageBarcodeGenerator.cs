@@ -85,26 +85,10 @@ namespace FocalCompiler
 
         public bool GenerateImage(string focal, string outputBaseFilename)
         {
-            byte[] byteArray = Encoding.ASCII.GetBytes(focal);
-
-            using (MemoryStream stream = new MemoryStream(byteArray))
-            {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    return GenerateImage(reader, outputBaseFilename, false);
-                }
-            }
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        private bool GenerateImage(StreamReader inFileStream, string outputBaseFilename, bool hexDebugOutput)
-        {
-
             ImageBaseFilename = Path.Combine(Path.GetDirectoryName(outputBaseFilename), Path.GetFileNameWithoutExtension(outputBaseFilename));
             PrintFilename = Path.GetFileName(outputBaseFilename);
 
-            return Generate(inFileStream, hexDebugOutput);
+            return Generate(focal, false);
         }
 
         /////////////////////////////////////////////////////////////

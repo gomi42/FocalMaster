@@ -126,6 +126,7 @@ namespace FocalCompiler
 
                     ErrorImageData = new ErrorImageData { Filename = file, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
 
+                    bitmap.Dispose();
                     return null;
                 }
 

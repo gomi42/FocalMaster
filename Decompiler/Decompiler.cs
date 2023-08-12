@@ -23,68 +23,71 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using FocalMaster.Helper;
 using FocalXRomCodes;
 
 namespace FocalDecompiler
 {
     public class Decompiler
     {
-        private Dictionary<short, string> stackParamter;
-        private Dictionary<short, string> shortLabelParamter;
+        private Dictionary<short, string> stackParameter;
+        private Dictionary<short, string> shortLabelParameter;
 
         /////////////////////////////////////////////////////////////
 
         void InitParameter()
         {
-            stackParamter = new Dictionary<short, string>();
+            stackParameter = new Dictionary<short, string>
+            {
+                { 112, "T" },
+                { 113, "Z" },
+                { 114, "Y" },
+                { 115, "X" },
+                { 116, "L" },
+                { 117, "M" },
+                { 118, "N" },
+                { 119, "O" },
+                { 120, "P" },
+                { 121, "Q" },
+                { 122, "R" },
+                { 123, "a" },
+                { 124, "b" },
+                { 125, "c" },
+                { 126, "d" },
+                { 127, "e" }
+            };
 
-            stackParamter.Add(112, "T");
-            stackParamter.Add(113, "Z");
-            stackParamter.Add(114, "Y");
-            stackParamter.Add(115, "X");
-            stackParamter.Add(116, "L");
-            stackParamter.Add(117, "M");
-            stackParamter.Add(118, "N");
-            stackParamter.Add(119, "O");
-            stackParamter.Add(120, "P");
-            stackParamter.Add(121, "Q");
-            stackParamter.Add(122, "R");
-            stackParamter.Add(123, "a");
-            stackParamter.Add(124, "b");
-            stackParamter.Add(125, "c");
-            stackParamter.Add(126, "d");
-            stackParamter.Add(127, "e");
+            shortLabelParameter = new Dictionary<short, string>
+            {
+                { 102, "A" },
+                { 103, "B" },
+                { 104, "C" },
+                { 105, "D" },
+                { 106, "E" },
+                { 107, "F" },
+                { 108, "G" },
+                { 109, "H" },
+                { 110, "I" },
+                { 111, "J" },
 
-            shortLabelParamter = new Dictionary<short, string>();
+                { 112, "T" },
+                { 113, "Z" },
+                { 114, "Y" },
+                { 115, "X" },
+                { 116, "L" },
+                { 117, "M" },
+                { 118, "N" },
+                { 119, "O" },
+                { 120, "P" },
+                { 121, "Q" },
+                { 122, "R" },
 
-            shortLabelParamter.Add(102, "A");
-            shortLabelParamter.Add(103, "B");
-            shortLabelParamter.Add(104, "C");
-            shortLabelParamter.Add(105, "D");
-            shortLabelParamter.Add(106, "E");
-            shortLabelParamter.Add(107, "F");
-            shortLabelParamter.Add(108, "G");
-            shortLabelParamter.Add(109, "H");
-            shortLabelParamter.Add(110, "I");
-            shortLabelParamter.Add(111, "J");
-
-            shortLabelParamter.Add(112, "T");
-            shortLabelParamter.Add(113, "Z");
-            shortLabelParamter.Add(114, "Y");
-            shortLabelParamter.Add(115, "X");
-            shortLabelParamter.Add(116, "L");
-            shortLabelParamter.Add(117, "M");
-            shortLabelParamter.Add(118, "N");
-            shortLabelParamter.Add(119, "O");
-            shortLabelParamter.Add(120, "P");
-            shortLabelParamter.Add(121, "Q");
-            shortLabelParamter.Add(122, "R");
-
-            shortLabelParamter.Add(123, "a");
-            shortLabelParamter.Add(124, "b");
-            shortLabelParamter.Add(125, "c");
-            shortLabelParamter.Add(126, "d");
-            shortLabelParamter.Add(127, "e");
+                { 123, "a" },
+                { 124, "b" },
+                { 125, "c" },
+                { 126, "d" },
+                { 127, "e" }
+            };
         }
 
         /////////////////////////////////////////////////////////////
@@ -219,18 +222,18 @@ namespace FocalDecompiler
                     dumpidx = 0;
                     dump[dumpidx++] = byteFromFile;
 
-                    OpCodes.OpCode OpCode = opCodes.GetOpCodeInfo(byteFromFile);
+                    OpCode OpCode = opCodes.GetOpCodeInfo(byteFromFile);
 
                     switch (OpCode.FctType)
                     {
-                        case FocalDecompiler.OpCodes.FctType.Null:
+                        case FctType.Null:
                             break;
 
-                        case FocalDecompiler.OpCodes.FctType.NoParam:
+                        case FctType.NoParam:
                             outputStream.WriteLine(OpCode.Mnemonic);
                             break;
 
-                        case FocalDecompiler.OpCodes.FctType.R_0_9:
+                        case FctType.R_0_9:
                         {
                             string ind = string.Empty;
 
@@ -246,13 +249,13 @@ namespace FocalDecompiler
                             if (byteFromFile <= 101)
                                 outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, byteFromFile.ToString("D1"));
                             else
-                                outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, stackParamter[(short)byteFromFile]);
+                                outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, stackParameter[(short)byteFromFile]);
 
                             break;
                         }
 
-                        case FocalDecompiler.OpCodes.FctType.R_0_55:
-                        case FocalDecompiler.OpCodes.FctType.R_0_101_Stack:
+                        case FctType.R_0_55:
+                        case FctType.R_0_101_Stack:
                         {
                             string ind = string.Empty;
 
@@ -268,25 +271,25 @@ namespace FocalDecompiler
                             if (byteFromFile <= 101)
                                 outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, byteFromFile.ToString("D2"));
                             else
-                                outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, stackParamter[(short)byteFromFile]);
+                                outputStream.WriteLine("{0,-4} {1}{2}", OpCode.Mnemonic, ind, stackParameter[(short)byteFromFile]);
 
                             break;
                         }
 
-                        case FocalDecompiler.OpCodes.FctType.R_0_15:
+                        case FctType.R_0_15:
                             outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, (byteFromFile & 0x0F).ToString("D2"));
                             break;
 
-                        case FocalDecompiler.OpCodes.FctType.R_0_14:
+                        case FctType.R_0_14:
                             outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, ((byteFromFile & 0x0F) - 1).ToString("D2"));
                             break;
 
-                        case FocalDecompiler.OpCodes.FctType.GTO_0_14:
+                        case FctType.GTO_0_14:
                             outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, ((byteFromFile & 0x0F) - 1).ToString("D2"));
                             byteFromFile = inputStream.ReadByte();
                             break;
 
-                        case FocalDecompiler.OpCodes.FctType.R_0_99_A_J:
+                        case FctType.R_0_99_A_J:
                             byteFromFile = inputStream.ReadByte();
                             dump[dumpidx++] = byteFromFile;
                             byteFromFile = inputStream.ReadByte();
@@ -297,22 +300,22 @@ namespace FocalDecompiler
                             if (byteFromFile <= 101)
                                 outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, byteFromFile.ToString("D2"));
                             else
-                                outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, shortLabelParamter[(short)byteFromFile]);
+                                outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, shortLabelParameter[(short)byteFromFile]);
 
                             break;
 
-                        case FocalDecompiler.OpCodes.FctType.LBL_0_99_A_J:
+                        case FctType.LBL_0_99_A_J:
                             byteFromFile = inputStream.ReadByte();
                             dump[dumpidx++] = byteFromFile;
 
                             if (byteFromFile <= 101)
                                 outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, byteFromFile.ToString("D2"));
                             else
-                                outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, shortLabelParamter[(short)byteFromFile]);
+                                outputStream.WriteLine("{0,-4} {1}", OpCode.Mnemonic, shortLabelParameter[(short)byteFromFile]);
 
                             break;
 
-                        case FocalDecompiler.OpCodes.FctType.GTO_XEQ_Ind:
+                        case FctType.GTO_XEQ_Ind:
                             byteFromFile = inputStream.ReadByte();
                             dump[dumpidx++] = byteFromFile;
 
@@ -326,11 +329,11 @@ namespace FocalDecompiler
                             if (byteFromFile <= 101)
                                 outputStream.WriteLine("{0,-4} IND {1}", mnemonic, byteFromFile.ToString("D2"));
                             else
-                                outputStream.WriteLine("{0,-4} IND {1}", mnemonic, stackParamter[(short)byteFromFile]);
+                                outputStream.WriteLine("{0,-4} IND {1}", mnemonic, stackParameter[(short)byteFromFile]);
 
                             break;
 
-                        case FocalDecompiler.OpCodes.FctType.XRom:
+                        case FctType.XRom:
                         {
                             int byte2;
                             int module;
@@ -349,7 +352,7 @@ namespace FocalDecompiler
                             break;
                         }
 
-                        case FocalDecompiler.OpCodes.FctType.LabelAlpha:
+                        case FctType.LabelAlpha:
                         {
                             int len;
                             string label = string.Empty;
@@ -371,7 +374,7 @@ namespace FocalDecompiler
                                 {
                                     byteFromFile = inputStream.ReadByte();
                                     dump[dumpidx++] = byteFromFile;
-                                    label += (char)byteFromFile;
+                                    label += HP41CharacterConverter.FromHp41(byteFromFile);
                                 }
 
                                 outputStream.WriteLine("{0,-4} \"{1}\"", OpCode.Mnemonic, label);
@@ -391,7 +394,7 @@ namespace FocalDecompiler
                             break;
                         }
 
-                        case FocalDecompiler.OpCodes.FctType.GTO_XEQ_Alpha:
+                        case FctType.GTO_XEQ_Alpha:
                         {
                             int Len;
                             string label = string.Empty;
@@ -403,14 +406,14 @@ namespace FocalDecompiler
                             {
                                 byteFromFile = inputStream.ReadByte();
                                 dump[dumpidx++] = byteFromFile;
-                                label += (char)byteFromFile;
+                                label += HP41CharacterConverter.FromHp41(byteFromFile);
                             }
 
                             outputStream.WriteLine("{0,-4} \"{1}\"", OpCode.Mnemonic, label);
                             break;
                         }
 
-                        case FocalDecompiler.OpCodes.FctType.Alpha:
+                        case FctType.Alpha:
                         {
                             int len;
                             string label = string.Empty;
@@ -430,7 +433,7 @@ namespace FocalDecompiler
 
                             while (len-- > 0)
                             {
-                                label += (char)byteFromFile;
+                                label += HP41CharacterConverter.FromHp41(byteFromFile);
                                 byteFromFile = inputStream.ReadByte();
                                 dump[dumpidx++] = byteFromFile;
                             }
@@ -440,7 +443,7 @@ namespace FocalDecompiler
                             break;
                         }
 
-                        case FocalDecompiler.OpCodes.FctType.Number:
+                        case FctType.Number:
                             do
                             {
                                 if (byteFromFile == 0x1b)
@@ -458,7 +461,7 @@ namespace FocalDecompiler
                                 dump[dumpidx++] = byteFromFile;
                                 OpCode = opCodes.GetOpCodeInfo(byteFromFile);
                             }
-                            while (OpCode.FctType == FocalDecompiler.OpCodes.FctType.Number);
+                            while (OpCode.FctType == FctType.Number);
 
                             outputStream.WriteLine();
                             haveNextByte = true;

@@ -25,45 +25,47 @@ using System.Text;
 
 namespace FocalDecompiler
 {
+    /////////////////////////////////////////////////////////////
+
+    public enum FctType
+    {
+        Null,
+        NoParam,
+        R_0_14,
+        GTO_0_14,
+        Number,
+        LabelAlpha,
+        GTO_XEQ_Alpha,
+        R_0_15,
+        R_0_101_Stack,
+        R_0_9,
+        XRom,
+        R_0_55,
+        GTO_XEQ_Ind,
+        LBL_0_99_A_J,
+        R_0_99_A_J,
+        Alpha
+    }
+
+    /////////////////////////////////////////////////////////////
+
+    public class OpCode
+    {
+        public string Mnemonic;
+        public FctType FctType;
+
+        public OpCode(string Mnemonic, FctType ParamType)
+        {
+            this.Mnemonic = Mnemonic;
+            this.FctType = ParamType;
+        }
+    }
+
     class OpCodes
     {
-        public enum FctType
-        {
-            Null,
-            NoParam,
-            R_0_14,
-            GTO_0_14,
-            Number,
-            LabelAlpha,
-            GTO_XEQ_Alpha,
-            R_0_15,
-            R_0_101_Stack,
-            R_0_9,
-            XRom,
-            R_0_55,
-            GTO_XEQ_Ind,
-            LBL_0_99_A_J,
-            R_0_99_A_J,
-            Alpha
-        }
-
         /////////////////////////////////////////////////////////////
 
-        public class OpCode
-        {
-            public string Mnemonic;
-            public FctType FctType;
-
-            public OpCode (string Mnemonic, FctType ParamType)
-            {
-                this.Mnemonic = Mnemonic;
-                this.FctType = ParamType;
-            }
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        List<OpCode> OpCodeTable = new List<OpCode> ()
+        List<OpCode> OpCodeTable = new List<OpCode>()
         {
             //00-0F
             new OpCode ("null",   FctType.Null),
@@ -354,7 +356,7 @@ namespace FocalDecompiler
             new OpCode ("alpha",  FctType.Alpha),
         };
 
-        public OpCode GetOpCodeInfo (int OpCode)
+        public OpCode GetOpCodeInfo(int OpCode)
         {
             return OpCodeTable[OpCode];
         }

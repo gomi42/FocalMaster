@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using FocalMaster.Helper;
 
 namespace FocalCompiler
 {
@@ -70,7 +71,7 @@ namespace FocalCompiler
 
                 foreach (char c in token.StringValue)
                 {
-                    outCode[outCodeLength++] = (byte)c;
+                    outCode[outCodeLength++] = (byte)HP41CharacterConverter.ToHp41(c);
                 }
             }
             else
