@@ -11,7 +11,7 @@ The FocalMaster is divided into 3 pages, the workflow goes from the left page to
 ### Scan Barcodes
 ![scan barcodes](Images/ScanBarcodes.jpg)
 
-Here you specify all image files that belong a one program and start the scan process. The order of the files is very important. The fist page of the barcode listing must be the first file in the list and so on. Otherwise the scanner stops with a checksum error. In case of an error the appropriate image is shown in the "Barcode View" page and the barcodes are marked with a color code. Please refer to the "Barcode View" page for more information.
+Here you specify all image files that belong to one program and start the scan process. The order of the files is important. The first page of the barcode listing must be the first file in the list and so on. Otherwise the scanner stops with a checksum error. In case of an error the appropriate image is shown in the "Barcode View" page and the barcodes are marked with a color code. Please refer to the "Barcode View" page for more information.
 
 #### Add
 Add files to the list. Drag & Drop is also supported. Please note, that Drag & Drop does not keep the order of your selection.

@@ -34,8 +34,8 @@ namespace FocalCompiler
         private const double LeftBorder = 20 * mmToPt;
 
         private const double BarGapWidth = 0.5 * mmToPt;
-        private const double ZerorBarWidth = 0.5 * mmToPt;
-        private const double OneBarWidth = 2 * ZerorBarWidth;
+        private const double ZeroBarWidth = 0.5 * mmToPt;
+        private const double OneBarWidth = 2 * ZeroBarWidth;
         private const double Barheight = 9.0 * mmToPt;
         private const double BarGapHeight = 1 * mmToPt;
 
@@ -126,16 +126,16 @@ namespace FocalCompiler
         {
             const int BitsPerNibble = 4;
 
-            startPattern = new XForm(document, XUnit.FromPoint(2 * ZerorBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
+            startPattern = new XForm(document, XUnit.FromPoint(2 * ZeroBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
             XGraphics formGfx = XGraphics.FromForm(startPattern);
-            formGfx.DrawRectangle(XBrushes.Black, 0, 0, ZerorBarWidth, Barheight);
-            formGfx.DrawRectangle(XBrushes.Black, ZerorBarWidth + BarGapWidth, 0, ZerorBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, 0, 0, ZeroBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, ZeroBarWidth + BarGapWidth, 0, ZeroBarWidth, Barheight);
             formGfx.Dispose();
 
-            endPattern = new XForm(document, XUnit.FromPoint(ZerorBarWidth + OneBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
+            endPattern = new XForm(document, XUnit.FromPoint(ZeroBarWidth + OneBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
             formGfx = XGraphics.FromForm(endPattern);
             formGfx.DrawRectangle(XBrushes.Black, 0, 0, OneBarWidth, Barheight);
-            formGfx.DrawRectangle(XBrushes.Black, OneBarWidth + ZerorBarWidth, 0, ZerorBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, OneBarWidth + ZeroBarWidth, 0, ZeroBarWidth, Barheight);
             formGfx.Dispose();
 
             nibblePatterns = new XForm[1 << BitsPerNibble];
@@ -153,7 +153,7 @@ namespace FocalCompiler
                 }
 
                 nibble = i;
-                var width = (BitsPerNibble - numberOneBars) * ZerorBarWidth + numberOneBars * OneBarWidth + (BitsPerNibble - 1) * BarGapWidth;
+                var width = (BitsPerNibble - numberOneBars) * ZeroBarWidth + numberOneBars * OneBarWidth + (BitsPerNibble - 1) * BarGapWidth;
                 XForm pattern = new XForm(document, XUnit.FromPoint(width), XUnit.FromPoint(Barheight));
                 formGfx = XGraphics.FromForm(pattern);
                 x = 0;
@@ -167,8 +167,8 @@ namespace FocalCompiler
                     }
                     else
                     {
-                        formGfx.DrawRectangle(XBrushes.Black, x, 0, ZerorBarWidth, Barheight);
-                        x += ZerorBarWidth + BarGapWidth;
+                        formGfx.DrawRectangle(XBrushes.Black, x, 0, ZeroBarWidth, Barheight);
+                        x += ZeroBarWidth + BarGapWidth;
                     }
 
                     nibble <<= 1;
