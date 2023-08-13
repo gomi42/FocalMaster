@@ -82,6 +82,17 @@ In case of errors this page shows the problematic image and the barcodes are mar
 
 ![barcode view](Images/Error.jpg)
 
+### Special Characters
+In almost all cases the HP-41 character codes correspond to the ASCII character code. But there are a few exceptions. Some of them cannot be entered on the PC keyboard. For 3 of these characters the HP document "Creating Your Own HP-41 Bar Code", page 17 proposes the following replacement:
+
+| HP-41 Character | ASCII replacement |
+|-----------------|-------------------|
+| ∑ | & |
+| ![angle](Images/AngleCharacter.png) | @ |
+| ≠ | # |
+
+More character replacements are describes in the manual.
+
 ### Debug Feature
 In case you are interested in the detailed evaluation of all barcodes on all pages, use the debug feature:
 - click "Scan" while holding the CTRL key on the keyboard
