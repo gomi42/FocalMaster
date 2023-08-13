@@ -91,7 +91,7 @@ In almost all cases the HP-41 character codes correspond to the ASCII character 
 | ![angle](Images/AngleCharacter.png) | @ |
 | ≠ | # |
 
-More character replacements are describes in the manual.
+More character replacements are described in the manual.
 
 ### Debug Feature
 In case you are interested in the detailed evaluation of all barcodes on all pages, use the debug feature:
