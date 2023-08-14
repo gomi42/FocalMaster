@@ -41,6 +41,7 @@
             <Color x:Key="CellBorderColor">#FFeaeaea</Color>
             <Color x:Key="CellBackgroundColor">#FFFFFFFF</Color>
             <Color x:Key="ScrollbarThumbColor">#FFC0C0C0</Color>
+            <Color x:Key="ScrollViewerBackgroundColor">#FFFFFFFF</Color>
 
             <!--  brushes  -->
             <SolidColorBrush x:Key="MouseOverTextBrush" Color="{StaticResource MouseOverTextColor}" />
@@ -53,6 +54,7 @@
             <SolidColorBrush x:Key="CellBorderBrush" Color="{StaticResource CellBorderColor}" />
             <SolidColorBrush x:Key="CellBackgroundBrush" Color="{StaticResource CellBackgroundColor}" />
             <SolidColorBrush x:Key="ScrollbarThumbBrush" Color="{StaticResource ScrollbarThumbColor}" />
+            <SolidColorBrush x:Key="ScrollViewerBackgroundBrush" Color="{StaticResource ScrollViewerBackgroundColor}" />
 
             <!--  icons  -->
             <Geometry x:Key="WarningIcon">F1M55.37731,33.278 L53.77159,51.68605 C53.59659,53.87661 53.22339,55.55711 52.65126,56.72681 C52.07838,57.89725 51.1323,58.4821 49.81377,58.4821 C48.46907,58.4821 47.53571,57.91595 47.01294,56.7829 C46.49016,55.6506 46.11697,53.92672 45.8926,51.61126 L44.698,33.72606 C44.47401,30.24121 44.36198,27.73953 44.36198,26.22079 C44.36198,24.1549 44.90315,22.54291 45.98609,21.3854 C47.06903,20.2279 48.49375,19.64911 50.26176,19.64911 C52.40221,19.64911 53.83292,20.39011 54.55538,21.87085 C55.27709,23.35219 55.63832,25.48689 55.63832,28.27449 C55.63832,29.91745 55.55082,31.58539 55.37731,33.278 z M53.95782,74.68732 C52.83823,75.68201 51.53092,76.18085 50.03739,76.18085 C48.51918,76.18085 47.19318,75.68874 46.06088,74.70602 C44.92783,73.72255 44.36198,72.34718 44.36198,70.57992 C44.36198,69.03629 44.90315,67.723 45.98609,66.6408 C47.06903,65.55786 48.39428,65.01639 49.9626,65.01639 C51.53092,65.01639 52.86889,65.55786 53.97651,66.6408 C55.08413,67.723 55.63832,69.03629 55.63832,70.57992 C55.63832,72.3225 55.07815,73.69188 53.95782,74.68732 z M99.52658,78.56661 L52.5817,1.43596 C51.80615,0.18654 50.63121,0.00001 50,0.00001 C49.36878,0.00001 48.1946,0.18654 47.41904,1.43596 L0.47401,78.56661 C0.15526,79.07966 0.00022,79.5957 0,80.14391 C-0.00037,80.92769 0.32234,81.71522 0.88527,82.30455 C1.45681,82.90286 2.1869,83.2065 3.05542,83.2065 L96.94488,83.2065 C97.81317,83.2065 98.54386,82.90286 99.11525,82.30455 C99.67766,81.71522 100.00074,80.92769 100,80.14391 C100,79.5957 99.84518,79.07966 99.52658,78.56661 z</Geometry>
@@ -319,9 +321,9 @@
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false" />
                 <Setter Property="Stylus.IsFlicksEnabled" Value="false" />
-                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" />
-                <Setter Property="Width" Value="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}" />
-                <Setter Property="MinWidth" Value="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}" />
+                <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}" />
+                <Setter Property="Width" Value="{x:Static SystemParameters.VerticalScrollBarWidth}" />
+                <Setter Property="MinWidth" Value="{x:Static SystemParameters.VerticalScrollBarWidth}" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type ScrollBar}">
@@ -356,8 +358,8 @@
                     <Trigger Property="Orientation" Value="Horizontal">
                         <Setter Property="Width" Value="Auto" />
                         <Setter Property="MinWidth" Value="0" />
-                        <Setter Property="Height" Value="{DynamicResource {x:Static SystemParameters.HorizontalScrollBarHeightKey}}" />
-                        <Setter Property="MinHeight" Value="{DynamicResource {x:Static SystemParameters.HorizontalScrollBarHeightKey}}" />
+                        <Setter Property="Height" Value="{x:Static SystemParameters.HorizontalScrollBarHeight}" />
+                        <Setter Property="MinHeight" Value="{x:Static SystemParameters.HorizontalScrollBarHeight}" />
                         <Setter Property="Background" Value="Transparent" />
                         <Setter Property="Template">
                             <Setter.Value>
@@ -393,7 +395,7 @@
             </Style>
 
             <Style TargetType="{x:Type ScrollViewer}">
-                <Setter Property="Background" Value="{DynamicResource ScrollViewerBackground}" />
+                <Setter Property="Background" Value="{StaticResource ScrollViewerBackgroundBrush}" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type ScrollViewer}">
@@ -427,7 +429,7 @@
                                            Cursor="Arrow"
                                            Maximum="{TemplateBinding ScrollableHeight}"
                                            Minimum="0"
-                                           Style="{DynamicResource VerticalScrollBarStyle}"
+                                           Orientation="Vertical"
                                            ViewportSize="{TemplateBinding ViewportHeight}"
                                            Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
                                            Value="{Binding VerticalOffset,
@@ -441,7 +443,6 @@
                                            Maximum="{TemplateBinding ScrollableWidth}"
                                            Minimum="0"
                                            Orientation="Horizontal"
-                                           Style="{DynamicResource HorisontalScrollBarStyle}"
                                            ViewportSize="{TemplateBinding ViewportWidth}"
                                            Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
                                            Value="{Binding HorizontalOffset,
