@@ -261,14 +261,14 @@ namespace FocalCompiler
 
         protected virtual void AddOneBar()
         {
-            throw new Exception("Implementation error. Override either AddOneBar, AddZeroZeroBar, AddOneZeroBar or AddBars");
+            throw new Exception("Implementation error. Override either AddOneBar and AddZeroZeroBar or AddOneZeroBar and AddBars");
         }
 
         /////////////////////////////////////////////////////////////
 
         protected virtual void AddZeroBar()
         {
-            throw new Exception("Implementation error. Override either AddZeroBar, AddZeroZeroBar, AddOneZeroBar or AddBars");
+            throw new Exception("Implementation error. Override either AddZeroBar and AddZeroZeroBar or AddOneZeroBar and AddBars");
         }
 
         /////////////////////////////////////////////////////////////
