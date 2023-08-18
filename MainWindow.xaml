@@ -218,12 +218,18 @@
                                   VerticalScrollBarVisibility="Auto">
                         <Grid>
                             <local:VisualHost x:Name="BarcodeVisualizer"
-                                              Margin="10" />
+                                              Margin="10"
+                                              HorizontalAlignment="Left" />
+                            <Image x:Name="BarcodeImage"
+                                   Margin="10"
+                                   HorizontalAlignment="Left"
+                                   Stretch="None" />
                             <ItemsControl x:Name="MyImages"
                                           Visibility="Collapsed">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Image Margin="0,0,0,3"
+                                               HorizontalAlignment="Left"
                                                Source="{Binding}"
                                                Stretch="None" />
                                     </DataTemplate>

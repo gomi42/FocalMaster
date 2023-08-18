@@ -206,6 +206,81 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
+        private void AddBarcodeRow(byte[] barcode, int currentRow, int fromLine, int toLine)
+        {
+            BeginBarcodeRow(currentRow, fromLine, toLine);
+            AddZeroZeroBar();
+            AddBars(barcode);
+            AddOneZeroBar();
+            EndBarcodeRow();
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected virtual void AddBars(byte[] barcode)
+        {
+            int barcodeLen = barcode.Length;
+
+            for (int i = 0; i < barcodeLen; i++)
+            {
+                byte b = barcode[i];
+
+                for (int j = 0; j < 8; j++)
+                {
+                    if ((b & 0x80) == 0x80)
+                    {
+                        AddOneBar();
+                    }
+                    else
+                    {
+                        AddZeroBar();
+                    }
+
+                    b <<= 1;
+                }
+            }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected virtual void AddZeroZeroBar()
+        {
+            AddZeroBar();
+            AddZeroBar();
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected virtual void AddOneZeroBar()
+        {
+            AddOneBar();
+            AddZeroBar();
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected virtual void AddOneBar()
+        {
+            throw new Exception("Implementation error. Override either AddOneBar, AddZeroZeroBar, AddOneZeroBar or AddBars");
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected virtual void AddZeroBar()
+        {
+            throw new Exception("Implementation error. Override either AddZeroBar, AddZeroZeroBar, AddOneZeroBar or AddBars");
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected abstract void BeginBarcodeRow(int currentRow, int fromLine, int toLine);
+        
+        protected abstract void EndBarcodeRow();
+
+        protected abstract void Save();
+
+        /////////////////////////////////////////////////////////////
+
         int CalcChecksum(byte[] bytes, int bufLen)
         {
             int check = 0;
@@ -279,11 +354,5 @@ namespace FocalCompiler
                 }
             }
         }
-        
-        /////////////////////////////////////////////////////////////
-
-        protected abstract void AddBarcodeRow(byte[] barcode, int currentRow, int fromLine, int toLine);
-
-        protected abstract void Save();
     }
 }

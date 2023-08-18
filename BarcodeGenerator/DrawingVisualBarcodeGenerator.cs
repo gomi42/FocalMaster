@@ -19,12 +19,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
-using System.Collections.Generic;
+using System;
 using System.Globalization;
-using System.IO;
-using System.Text;
 using System.Windows;
-using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace FocalCompiler
@@ -44,19 +41,7 @@ namespace FocalCompiler
         private DrawingVisual drawingVisual;
         private DrawingContext drawingContext;
         private double currentY;
-
-        /////////////////////////////////////////////////////////////
-
-        public DrawingVisual Visual
-        {
-            get => drawingVisual;
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        public DrawingVisualBarcodeGenerator()
-        {
-        }
+        private double currentX;
 
         /////////////////////////////////////////////////////////////
 
@@ -92,27 +77,8 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private double AddZeroBar(double x)
+        protected override void BeginBarcodeRow(int currentRow, int fromLine, int toLine)
         {
-            drawingContext.DrawRectangle(Brushes.Black, null, new Rect(x, currentY, ZeroBarWidth, BarHeight));
-
-            return ZeroBarWidth + GapBarWidth;
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        private double AddOneBar(double x)
-        {
-            drawingContext.DrawRectangle(Brushes.Black, null, new Rect(x, currentY, OneBarWidth, BarHeight));
-
-            return OneBarWidth + GapBarWidth;
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        protected override void AddBarcodeRow(byte[] barcode, int currentRow, int fromLine, int toLine)
-        {
-
             if (drawingVisual == null)
             {
                 InitVisual();
@@ -127,8 +93,196 @@ namespace FocalCompiler
                     Brushes.Black,
                     1);
 
-            drawingContext.DrawText(text, new System.Windows.Point(LeftBorder, currentY));
+            drawingContext.DrawText(text, new Point(LeftBorder, currentY));
             currentY += text.Height;
+            currentX = LeftBorder;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void EndBarcodeRow()
+        {
+            currentY += BarHeight + BarGap;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void AddZeroBar()
+        {
+            drawingContext.DrawRectangle(Brushes.Black, null, new Rect(currentX, currentY, ZeroBarWidth, BarHeight));
+
+            currentX += ZeroBarWidth + GapBarWidth;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void AddOneBar()
+        {
+            drawingContext.DrawRectangle(Brushes.Black, null, new Rect(currentX, currentY, OneBarWidth, BarHeight));
+
+            currentX += OneBarWidth + GapBarWidth;
+        }
+    }
+
+#if AlternativeImplementationUsingDrawing
+    internal class DrawingBarcodeGenerator : BarcodeGenerator
+    {
+        private const double TopBorder = 0;
+        private const double LeftBorder = 0;
+        private const double ZeroBarWidth = 2;
+        private const double OneBarWidth = 2 * ZeroBarWidth;
+        private const double GapBarWidth = ZeroBarWidth;
+        private const double BarHeight = 33;
+        private const double BarGap = 3;
+
+        /////////////////////////////////////////////////////////////
+
+        private DrawingGroup drawingGroup;
+        private GlyphTypeface glyphTypeface;
+        private double currentY;
+
+        /////////////////////////////////////////////////////////////
+
+        public Drawing Drawing
+        {
+            get => drawingGroup;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        public bool GenerateDrawing(string focal, out Drawing geometry)
+        {
+            var result = Generate(focal, false);
+            geometry = drawingGroup;
+
+            return result;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void Save()
+        {
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private void InitGeometryGroup()
+        {
+            currentY = TopBorder;
+
+            drawingGroup = new DrawingGroup();
+            Typeface typeface = new Typeface("Arial");
+
+            if (!typeface.TryGetGlyphTypeface(out glyphTypeface))
+            {
+                glyphTypeface = null;
+            }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private double AddZeroBar(double x)
+        {
+            GeometryDrawing geometryDrawing = new GeometryDrawing();
+            geometryDrawing.Geometry = new RectangleGeometry(new Rect(x, currentY, ZeroBarWidth, BarHeight));
+            geometryDrawing.Brush = Brushes.Black;
+            drawingGroup.Children.Add(geometryDrawing);
+
+            return ZeroBarWidth + GapBarWidth;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private double AddOneBar(double x)
+        {
+            GeometryDrawing geometryDrawing = new GeometryDrawing();
+            geometryDrawing.Geometry = new RectangleGeometry(new Rect(x, currentY, OneBarWidth, BarHeight));
+            geometryDrawing.Brush = Brushes.Black;
+            drawingGroup.Children.Add(geometryDrawing);
+
+            return OneBarWidth + GapBarWidth;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private void AddText1(string s)
+        {
+            FormattedText text;
+            text = new FormattedText(s,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Arial"),
+                    12,
+                    Brushes.Black,
+                    1);
+            var geometryDrawing = new GeometryDrawing();
+            geometryDrawing.Geometry = text.BuildGeometry(new Point(LeftBorder, currentY));
+            geometryDrawing.Brush = Brushes.Black;
+
+            var drawing = geometryDrawing;
+            drawingGroup.Children.Add(drawing);
+
+            currentY += text.Height;
+        }
+
+        private void AddText(string text)
+        {
+            const double FontSize = 12;
+
+            if (glyphTypeface == null)
+            {
+                return;
+            }
+
+            double textWidth = 0;
+            var glyphIndexes = new ushort[text.Length];
+            var advanceWidths = new double[text.Length];
+
+            for (int ix = 0; ix < text.Length; ix++)
+            {
+                ushort glyphIndex = glyphTypeface.CharacterToGlyphMap[text[ix]];
+                glyphIndexes[ix] = glyphIndex;
+
+                double width = glyphTypeface.AdvanceWidths[glyphIndex] * FontSize;
+                advanceWidths[ix] = width;
+
+                textWidth += width;
+            }
+
+            var glyphRun = new GlyphRun(
+                glyphTypeface,    // typeface
+                0,       // Bi-directional nesting level
+                false,   // isSideways
+                FontSize,      // pt size
+                1, // pixels per dip
+                glyphIndexes,   // glyphIndices
+                new Point(LeftBorder, currentY + glyphTypeface.Baseline * FontSize),           // baselineOrigin
+                advanceWidths,  // advanceWidths
+                null,    // glyphOffsets
+                null,    // characters
+                null,    // deviceFontName
+                null,    // clusterMap
+                null,    // caretStops
+                null);   // xmlLanguage
+
+            var drawing = new GlyphRunDrawing(Brushes.Black, glyphRun);
+            drawingGroup.Children.Add(drawing);
+
+            currentY += glyphTypeface.Height * FontSize;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void AddBarcodeRow(byte[] barcode, int currentRow, int fromLine, int toLine)
+        {
+
+            if (drawingGroup == null)
+            {
+                InitGeometryGroup();
+            }
+
+            string s = string.Format("Row {0} ({1} - {2})", currentRow, fromLine, toLine);
+            AddText(s);
 
             int barcodeLen = barcode.Length;
             double x = LeftBorder;
@@ -161,4 +315,5 @@ namespace FocalCompiler
             currentY += BarHeight + BarGap;
         }
     }
+#endif
 }

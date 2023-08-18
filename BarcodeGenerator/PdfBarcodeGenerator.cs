@@ -19,8 +19,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
+using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Windows.Media;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 
@@ -33,10 +35,10 @@ namespace FocalCompiler
         private const double TopBorder = 10 * mmToPt;
         private const double LeftBorder = 20 * mmToPt;
 
-        private const double BarGapWidth = 0.5 * mmToPt;
         private const double ZeroBarWidth = 0.5 * mmToPt;
         private const double OneBarWidth = 2 * ZeroBarWidth;
-        private const double Barheight = 9.0 * mmToPt;
+        private const double BarGapWidth = ZeroBarWidth;
+        private const double BarHeight = 9.0 * mmToPt;
         private const double BarGapHeight = 1 * mmToPt;
 
 
@@ -44,7 +46,8 @@ namespace FocalCompiler
 
         private string filename;
         private double currentY;
-        private int currentPage = 1;
+        private double currentX;
+        private int currentPage;
 
         private PdfDocument document;
         private PdfPage page;
@@ -54,6 +57,7 @@ namespace FocalCompiler
         private XForm[] nibblePatterns;
         private XForm startPattern;
         private XForm endPattern;
+        private double rowHeight;
 
         /////////////////////////////////////////////////////////////
 
@@ -66,8 +70,36 @@ namespace FocalCompiler
         public bool GeneratePdf(string focal, string pdfFilename)
         {
             filename = pdfFilename;
+            currentPage = 1;
 
             return Generate(focal, false);
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void Save()
+        {
+            if (document == null)
+            {
+                return;
+            }
+
+            ClosePage();
+            document.Save(filename);
+            document.Dispose();
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private void ClosePage()
+        {
+            if (document == null || page == null)
+            {
+                return;
+            }
+
+            grafics.Dispose();
+            page = null;
         }
 
         /////////////////////////////////////////////////////////////
@@ -94,19 +126,6 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private void ClosePage()
-        {
-            if (document == null || page == null)
-            {
-                return;
-            }
-
-            grafics.Dispose();
-            page = null;
-        }
-
-        /////////////////////////////////////////////////////////////
-
         private void InitDocument()
         {
             document = new PdfDocument();
@@ -122,20 +141,92 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
+        protected override void BeginBarcodeRow(int currentRow, int fromLine, int toLine)
+        {
+            if (page == null)
+            {
+                AddPage();
+            }
+
+            string s = string.Format("Row {0} ({1} - {2})", currentRow, fromLine, toLine);
+            grafics.DrawString(s,
+                               rowHeaderFont,
+                               XBrushes.Black,
+                               LeftBorder,
+                               currentY,
+                               XStringFormats.TopLeft);
+            rowHeight = rowHeaderFont.Height;
+            currentY += rowHeight;
+            currentX = LeftBorder;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void EndBarcodeRow()
+        {
+            var patternHeight = endPattern.PointHeight + BarGapHeight;
+            rowHeight += patternHeight;
+            currentY += patternHeight;
+
+            if (currentY + rowHeight > page.Height - TopBorder)
+            {
+                ClosePage();
+                currentPage++;
+            }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void AddZeroZeroBar()
+        {
+            grafics.DrawImage(startPattern, currentX, currentY);
+            currentX += startPattern.PointWidth + BarGapWidth;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void AddOneZeroBar()
+        {
+            grafics.DrawImage(endPattern, currentX, currentY);
+            currentX += endPattern.PointWidth + BarGapWidth;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void AddBars(byte[] barcode)
+        {
+            int barcodeLen = barcode.Length;
+
+            for (int i = 0; i < barcodeLen; i++)
+            {
+                byte b = barcode[i];
+
+                var nibblePattern = nibblePatterns[b >> 4];
+                grafics.DrawImage(nibblePattern, currentX, currentY);
+                currentX += nibblePattern.PointWidth + BarGapWidth;
+
+                nibblePattern = nibblePatterns[b & 0x0F];
+                grafics.DrawImage(nibblePattern, currentX, currentY);
+                currentX += nibblePattern.PointWidth + BarGapWidth;
+            }
+        }
+
+        /////////////////////////////////////////////////////////////
+
         private void CreateNibblePatterns()
         {
             const int BitsPerNibble = 4;
 
-            startPattern = new XForm(document, XUnit.FromPoint(2 * ZeroBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
+            startPattern = new XForm(document, XUnit.FromPoint(2 * ZeroBarWidth + BarGapWidth), XUnit.FromPoint(BarHeight));
             XGraphics formGfx = XGraphics.FromForm(startPattern);
-            formGfx.DrawRectangle(XBrushes.Black, 0, 0, ZeroBarWidth, Barheight);
-            formGfx.DrawRectangle(XBrushes.Black, ZeroBarWidth + BarGapWidth, 0, ZeroBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, 0, 0, ZeroBarWidth, BarHeight);
+            formGfx.DrawRectangle(XBrushes.Black, ZeroBarWidth + BarGapWidth, 0, ZeroBarWidth, BarHeight);
             formGfx.Dispose();
 
-            endPattern = new XForm(document, XUnit.FromPoint(ZeroBarWidth + OneBarWidth + BarGapWidth), XUnit.FromPoint(Barheight));
+            endPattern = new XForm(document, XUnit.FromPoint(ZeroBarWidth + OneBarWidth + BarGapWidth), XUnit.FromPoint(BarHeight));
             formGfx = XGraphics.FromForm(endPattern);
-            formGfx.DrawRectangle(XBrushes.Black, 0, 0, OneBarWidth, Barheight);
-            formGfx.DrawRectangle(XBrushes.Black, OneBarWidth + ZeroBarWidth, 0, ZeroBarWidth, Barheight);
+            formGfx.DrawRectangle(XBrushes.Black, 0, 0, OneBarWidth, BarHeight);
+            formGfx.DrawRectangle(XBrushes.Black, OneBarWidth + ZeroBarWidth, 0, ZeroBarWidth, BarHeight);
             formGfx.Dispose();
 
             nibblePatterns = new XForm[1 << BitsPerNibble];
@@ -154,7 +245,7 @@ namespace FocalCompiler
 
                 nibble = i;
                 var width = (BitsPerNibble - numberOneBars) * ZeroBarWidth + numberOneBars * OneBarWidth + (BitsPerNibble - 1) * BarGapWidth;
-                XForm pattern = new XForm(document, XUnit.FromPoint(width), XUnit.FromPoint(Barheight));
+                XForm pattern = new XForm(document, XUnit.FromPoint(width), XUnit.FromPoint(BarHeight));
                 formGfx = XGraphics.FromForm(pattern);
                 x = 0;
 
@@ -162,12 +253,12 @@ namespace FocalCompiler
                 {
                     if ((nibble & 0x08) != 0)
                     {
-                        formGfx.DrawRectangle(XBrushes.Black, x, 0, OneBarWidth, Barheight);
+                        formGfx.DrawRectangle(XBrushes.Black, x, 0, OneBarWidth, BarHeight);
                         x += OneBarWidth + BarGapWidth;
                     }
                     else
                     {
-                        formGfx.DrawRectangle(XBrushes.Black, x, 0, ZeroBarWidth, Barheight);
+                        formGfx.DrawRectangle(XBrushes.Black, x, 0, ZeroBarWidth, BarHeight);
                         x += ZeroBarWidth + BarGapWidth;
                     }
 
@@ -176,73 +267,6 @@ namespace FocalCompiler
 
                 formGfx.Dispose();
                 nibblePatterns[i] = pattern;
-            }
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        protected override void Save()
-        {
-            if (document == null)
-            {
-                return;
-            }
-
-            ClosePage();
-            document.Save(filename);
-            document.Dispose();
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        protected override void AddBarcodeRow(byte[] barcode, int currentRow, int fromLine, int toLine)
-        {
-            double rowHeight;
-
-            if (page == null)
-            {
-                AddPage();
-            }
-
-            string s = string.Format("Row {0} ({1} - {2})", currentRow, fromLine, toLine);
-            grafics.DrawString(s,
-                               rowHeaderFont,
-                               XBrushes.Black,
-                               LeftBorder,
-                               currentY,
-                               XStringFormats.TopLeft);
-            rowHeight = rowHeaderFont.Height;
-            currentY += rowHeight;
-
-            int barcodeLen = barcode.Length;
-            double x = LeftBorder;
-
-            grafics.DrawImage(startPattern, x, currentY);
-            x += startPattern.PointWidth + BarGapWidth;
-
-            for (int i = 0; i < barcodeLen; i++)
-            {
-                byte b = barcode[i];
-
-                var nibblePattern = nibblePatterns[b >> 4];
-                grafics.DrawImage(nibblePattern, x, currentY);
-                x += nibblePattern.PointWidth + BarGapWidth;
-
-                nibblePattern = nibblePatterns[b & 0x0F];
-                grafics.DrawImage(nibblePattern, x, currentY);
-                x += nibblePattern.PointWidth + BarGapWidth;
-            }
-
-            grafics.DrawImage(endPattern, x, currentY);
-
-            var patternHeight = endPattern.PointHeight + BarGapHeight;
-            rowHeight += patternHeight;
-            currentY += patternHeight;
-
-            if (currentY + rowHeight > page.Height - TopBorder)
-            {
-                ClosePage();
-                currentPage++;
             }
         }
     }

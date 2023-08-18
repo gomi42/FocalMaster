@@ -238,10 +238,35 @@ namespace FocalMaster
             }
         }
 
+#if AlternativeImplementationUsingDrawing
+        private void ButtonCreateBarcode2(object sender, RoutedEventArgs e)
+        {
+            MyImages.Visibility = Visibility.Collapsed;
+            MyImages.ItemsSource = null;
+
+            var generator = new DrawingBarcodeGenerator();
+
+                if (generator.GenerateDrawing(Focal.Text, out Drawing drawing))
+                {
+                    DrawingImage drawingImage = new DrawingImage(drawing);
+                    drawingImage.Freeze();
+
+                    BarcodeImage.Source = drawingImage;
+
+                    MyTabControl.SelectedIndex = 2;
+                    ShowErrors.Text = string.Empty;
+                }
+                else
+                {
+                    ShowErrors.Text = string.Join("\n", generator.Errors);
+                }
+        }
+#endif
+
         private void ButtonExportBarcode(object sender, RoutedEventArgs e)
         {
             var saveDialog = new System.Windows.Forms.SaveFileDialog();
-            saveDialog.Filter = "PDF File (*.pdf)|*.pdf|JPG File (*.jpg)|*.jpg";
+            saveDialog.Filter = "PDF File (*.pdf)|*.pdf|JPG File (*.jpg)|*.jpg|PNG File (*.png)|*.png|TIF File (*.tif)|*.tif|SVG File (*.svg)|*.svg";
 
             System.Windows.Forms.DialogResult result = saveDialog.ShowDialog();
 
@@ -253,7 +278,39 @@ namespace FocalMaster
                 {
                     case ".jpg":
                     {
-                        var generator = new ImageBarcodeGenerator();
+                        var generator = new JpgBarcodeGenerator();
+
+                        if (generator.GenerateImage(Focal.Text, saveDialog.FileName))
+                        {
+                            ShowErrors.Text = string.Empty;
+                        }
+                        else
+                        {
+                            ShowErrors.Text = string.Join("\n", generator.Errors);
+                        }
+
+                        break;
+                    }
+
+                    case ".png":
+                    {
+                        var generator = new PngBarcodeGenerator();
+
+                        if (generator.GenerateImage(Focal.Text, saveDialog.FileName))
+                        {
+                            ShowErrors.Text = string.Empty;
+                        }
+                        else
+                        {
+                            ShowErrors.Text = string.Join("\n", generator.Errors);
+                        }
+
+                        break;
+                    }
+
+                    case ".tif":
+                    {
+                        var generator = new TifBarcodeGenerator();
 
                         if (generator.GenerateImage(Focal.Text, saveDialog.FileName))
                         {
@@ -272,6 +329,22 @@ namespace FocalMaster
                         var generator = new PdfBarcodeGenerator();
 
                         if (generator.GeneratePdf(Focal.Text, saveDialog.FileName))
+                        {
+                            ShowErrors.Text = string.Empty;
+                        }
+                        else
+                        {
+                            ShowErrors.Text = string.Join("\n", generator.Errors);
+                        }
+
+                        break;
+                    }
+
+                    case ".svg":
+                    {
+                        var generator = new SvgBarcodeGenerator();
+
+                        if (generator.GenerateSvg(Focal.Text, saveDialog.FileName))
                         {
                             ShowErrors.Text = string.Empty;
                         }

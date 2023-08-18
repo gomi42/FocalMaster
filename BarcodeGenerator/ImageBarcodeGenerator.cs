@@ -20,31 +20,31 @@
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FocalCompiler
 {
-    class ImageBarcodeGenerator : BarcodeGenerator
+    internal abstract class ImageBarcodeGenerator : BarcodeGenerator
     {
         private const int PrintAtDpi = 300;
+        private const double mmToPrintPx = PrintAtDpi / 25.4;
         private const int WpfDpi = 96;
 
-        private const int ImageWidthPx = 2121;
-        private const int ImageHeightPx = 3000;
+        private const int ImageWidthPx = (int)(210 * mmToPrintPx);
+        private const int ImageHeightPx = (int)(297 * mmToPrintPx);
 
         private const double DpiToWpf = (double)PrintAtDpi / (double)WpfDpi;
 
         private const int ImageHeightWpf = (int)(ImageHeightPx / DpiToWpf) + 1;
         private const int ImageWidthWpf = (int)(ImageWidthPx / DpiToWpf) + 1;
 
-        private const double TopBorder = 10;
-        private const double LeftBorder = 10;
+        private const double TopBorder = (int)(10 * mmToPrintPx / DpiToWpf);
+        private const double LeftBorder = (int)(10 * mmToPrintPx / DpiToWpf);
         private const double ZeroBarWidth = 2;
         private const double OneBarWidth = 2 * ZeroBarWidth;
         private const double GapBarWidth = ZeroBarWidth;
@@ -52,44 +52,58 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private DateTime printDate;
+        private string imageBaseFilename;
+        private string printFilename;
         private DrawingVisual drawingVisual;
         private DrawingContext drawingContext;
+        private int currentPage;
         private double currentY;
-        private int currentPage = 1;
-
-        /////////////////////////////////////////////////////////////
-
-        public string ImageBaseFilename
-        {
-            get;
-            private set;
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        public string PrintFilename
-        {
-            get;
-            private set;
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        public ImageBarcodeGenerator ()
-        {
-            printDate = DateTime.Now;
-        }
+        private double currentX;
+        private double lastRowHeaderHeight;
 
         /////////////////////////////////////////////////////////////
 
         public bool GenerateImage(string focal, string outputBaseFilename)
         {
-            ImageBaseFilename = Path.Combine(Path.GetDirectoryName(outputBaseFilename), Path.GetFileNameWithoutExtension(outputBaseFilename));
-            PrintFilename = Path.GetFileName(outputBaseFilename);
+            imageBaseFilename = Path.Combine(Path.GetDirectoryName(outputBaseFilename), Path.GetFileNameWithoutExtension(outputBaseFilename));
+            printFilename = Path.GetFileName(outputBaseFilename);
+            currentPage = 1;
 
             return Generate(focal, false);
         }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void Save()
+        {
+            if (drawingVisual == null)
+            {
+                return;
+            }
+
+            drawingContext.Close();
+
+            RenderTargetBitmap targetBitmap = new RenderTargetBitmap(ImageWidthPx, ImageHeightPx, PrintAtDpi, PrintAtDpi, PixelFormats.Default);
+            targetBitmap.Render(drawingVisual);
+            targetBitmap.Freeze();
+
+            BitmapEncoder enc = GetEncoder();
+            enc.Frames.Add(BitmapFrame.Create(targetBitmap));
+
+            FileStream fs = new FileStream(imageBaseFilename + "-" + currentPage.ToString() + GetFileExtension(), FileMode.Create);
+            enc.Save(fs);
+            fs.Flush();
+            fs.Close();
+            fs.Dispose();
+        
+            drawingVisual = null;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected abstract string GetFileExtension();
+
+        protected abstract BitmapEncoder GetEncoder();
 
         /////////////////////////////////////////////////////////////
 
@@ -101,7 +115,7 @@ namespace FocalCompiler
             drawingContext = drawingVisual.RenderOpen ();
             drawingContext.DrawRectangle (Brushes.White, null, new Rect (0, 0, ImageWidthWpf, ImageHeightWpf));
 
-            string s = string.Format ("Page {0}  {1}  {2}", currentPage, printDate, PrintFilename);
+            string s = string.Format ("Page {0}  {1}", currentPage, printFilename);
             FormattedText text = new FormattedText(s,
                     CultureInfo.InvariantCulture,
                     FlowDirection.LeftToRight,
@@ -110,112 +124,63 @@ namespace FocalCompiler
                     Brushes.Black,
                     1);
 
-            drawingContext.DrawText (text, new System.Windows.Point (LeftBorder, currentY));
+            drawingContext.DrawText (text, new Point (LeftBorder, currentY));
             currentY += (int)(text.Height * 2);
         }
 
         /////////////////////////////////////////////////////////////
 
-        protected override void Save ()
+        protected override void BeginBarcodeRow(int currentRow, int fromLine, int toLine)
         {
             if (drawingVisual == null)
             {
-                return;
+                InitImage();
             }
 
-            drawingContext.Close ();
-
-            RenderTargetBitmap targetBitmap = new RenderTargetBitmap (ImageWidthPx, ImageHeightPx, PrintAtDpi, PrintAtDpi, PixelFormats.Default);
-            targetBitmap.Render (drawingVisual);
-            targetBitmap.Freeze ();
-
-            JpegBitmapEncoder enc = new JpegBitmapEncoder ();
-            enc.QualityLevel = 80;
-            enc.Frames.Add (BitmapFrame.Create (targetBitmap));
-
-            string filename = ImageBaseFilename + "-" + currentPage.ToString () + ".jpg";
-            FileStream fs = new FileStream (filename, FileMode.Create);
-            enc.Save (fs);
-            fs.Flush ();
-            fs.Close ();
-            fs.Dispose();
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        private double AddZeroBar (double x)
-        {
-            drawingContext.DrawRectangle (Brushes.Black, null, new Rect (x, currentY, ZeroBarWidth, BarHeight));
-
-            return ZeroBarWidth + GapBarWidth;
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        private double AddOneBar (double x)
-        {
-            drawingContext.DrawRectangle (Brushes.Black, null, new Rect (x, currentY, OneBarWidth, BarHeight));
-
-            return OneBarWidth + GapBarWidth;
-        }
-
-        /////////////////////////////////////////////////////////////
-
-        protected override void AddBarcodeRow (byte[] barcode, int currentRow, int fromLine, int toLine)
-        {
-            if (drawingVisual == null)
-            {
-                InitImage ();
-            }
-
-            string s = string.Format ("Row {0} ({1} - {2})", currentRow, fromLine, toLine);
-            FormattedText text = new FormattedText (s,
+            string s = string.Format("Row {0} ({1} - {2})", currentRow, fromLine, toLine);
+            FormattedText text = new FormattedText(s,
                     CultureInfo.InvariantCulture,
                     FlowDirection.LeftToRight,
-                    new Typeface ("Arial"),
+                    new Typeface("Arial"),
                     12,
                     Brushes.Black,
                     1);
 
-            drawingContext.DrawText (text, new System.Windows.Point (LeftBorder, currentY));
-            currentY += text.Height;
+            drawingContext.DrawText(text, new Point(LeftBorder, currentY));
+            lastRowHeaderHeight = text.Height;
+            currentY += lastRowHeaderHeight;
+            currentX = LeftBorder;
+        }
 
-            int barcodeLen = barcode.Length;
-            double x = LeftBorder;
+        /////////////////////////////////////////////////////////////
 
-            x += AddZeroBar (x);
-            x += AddZeroBar (x);
-
-            for (int i = 0; i < barcodeLen; i++)
-            {
-                byte b = barcode[i];
-
-                for (int j = 0; j < 8; j++)
-                {
-                    if ((b & 0x80) == 0x80)
-                    {
-                        x += AddOneBar (x);
-                    }
-                    else
-                    {
-                        x += AddZeroBar (x);
-                    }
-
-                    b <<= 1;
-                }
-            }
-
-            x += AddOneBar (x);
-            x += AddZeroBar (x);
-
+        protected override void EndBarcodeRow()
+        {
             currentY += BarHeight;
 
-            if (currentY + text.Height + BarHeight > ImageHeightWpf - TopBorder)
+            if (currentY + lastRowHeaderHeight + BarHeight > ImageHeightWpf - TopBorder)
             {
-                Save ();
-                drawingVisual = null;
+                Save();
                 currentPage++;
             }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void AddZeroBar()
+        {
+            drawingContext.DrawRectangle(Brushes.Black, null, new Rect(currentX, currentY, ZeroBarWidth, BarHeight));
+
+            currentX += ZeroBarWidth + GapBarWidth;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        protected override void AddOneBar()
+        {
+            drawingContext.DrawRectangle(Brushes.Black, null, new Rect(currentX, currentY, OneBarWidth, BarHeight));
+
+            currentX += OneBarWidth + GapBarWidth;
         }
     }
 }
