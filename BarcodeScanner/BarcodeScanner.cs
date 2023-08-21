@@ -41,7 +41,7 @@ namespace FocalCompiler
 
     internal enum ScanResult
     {
-        NoBarcode = 0,
+        NoBarcodeFound = 0,
         NoProgramCode = 1,
         CheckSumError = 2,
         ProgramCode = 3
@@ -62,10 +62,20 @@ namespace FocalCompiler
 
     internal class BarcodeScanner
     {
+        enum DecodeBarcodeRowResult
+        {
+            Ok,
+            EmptyRow,
+            InvalidRowWithinBounds,
+            InvalidNumberOfBars,
+            InvalidNarrowBarWidthDistribution,
+            InvalidSignature
+        }
+
         private const int ProgramBarcodeHeaderLength = 3;
         private const int MinProgramBarcodeLength = ProgramBarcodeHeaderLength + 1;
 
-        private const int MinBoxSize = 6;
+        private const int MinBoxSize = 4;
         private const int MaxBoxSize = 20;
 
         /////////////////////////////////////////////////////////////
@@ -111,7 +121,7 @@ namespace FocalCompiler
                 {
                     switch (scanResult)
                     {
-                        case ScanResult.NoBarcode:
+                        case ScanResult.NoBarcodeFound:
                             Errors.Add($"No barcodes found in {file}");
                             break;
 
@@ -181,7 +191,7 @@ namespace FocalCompiler
                 {
                     switch (scanResult)
                     {
-                        case ScanResult.NoBarcode:
+                        case ScanResult.NoBarcodeFound:
                             Errors.Add($"No barcodes found in {file}");
                             break;
 
@@ -219,7 +229,10 @@ namespace FocalCompiler
             var boxes = FindBoxes(edges, boxSize);
             var areas = CombineBoxesToAreas(boxes, boxSize);
 
-            var imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
+            var imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage};
+            results.Add(imageData);
+
+            imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
             results.Add(imageData);
 
             areas = CreateBoxAreas(boxes, boxSize);
@@ -548,13 +561,14 @@ namespace FocalCompiler
         {
             programCode = null;
             areaResults = new List<ScanResult>();
-            byte[] data;
             var code = new List<byte>();
-            ScanResult lastResult = ScanResult.NoBarcode;
+            ScanResult lastResult = ScanResult.NoBarcodeFound;
+            int rowChecksum = lastCheckSum;
+            int row = currentRow;
 
             foreach (var area in barcodeAreas)
             {
-                var scanResult = DecodeArea(blacks, area, lastCheckSum, currentRow, out data, out int newCheckSum);
+                var scanResult = DecodeArea(blacks, area, rowChecksum, row, out byte[] data, out int checkSum);
                 areaResults.Add(scanResult);
 
                 if (scanResult == ScanResult.CheckSumError)
@@ -569,13 +583,21 @@ namespace FocalCompiler
 
                 if (scanResult == ScanResult.ProgramCode)
                 {
+                    rowChecksum = checkSum;
                     code.AddRange(data);
-                    lastCheckSum = newCheckSum;
-                    currentRow++;
+                    row++;
                 }
             }
 
+            if (lastResult != ScanResult.ProgramCode)
+            {
+                return lastResult;
+            }
+
+            lastCheckSum = rowChecksum;
+            currentRow = row;
             programCode = code;
+
             return lastResult;
         }
 
@@ -583,7 +605,7 @@ namespace FocalCompiler
 
         private ScanResult DecodeArea(byte[,] blacks, Rectangle area, int lastCheckSum, int currentRow, out byte[] programData, out int newCheckSum)
         {
-            ScanResult lastResult = ScanResult.NoBarcode;
+            ScanResult lastResult = ScanResult.NoBarcodeFound;
 
             void SetLastResult(ScanResult newResult)
             {
@@ -595,6 +617,7 @@ namespace FocalCompiler
 
             programData = null;
             newCheckSum = 0;
+            int checkSum;
             byte[] data;
             int y = (area.Bottom - area.Top) / 2 + area.Top;
             int testIndex = -1;
@@ -607,7 +630,7 @@ namespace FocalCompiler
                 y += testIndex * sign;
 
                 // first pass: try to decode normal
-                var checkResult = CheckDecodeBarcodeRow(blacks, y, area.Left, area.Right, false, lastCheckSum, out newCheckSum, out data);
+                var checkResult = CheckDecodeBarcodeRow(blacks, y, area.Left, area.Right, false, lastCheckSum, out checkSum, out data);
                 SetLastResult(checkResult);
 
                 if (checkResult == ScanResult.NoProgramCode)
@@ -618,7 +641,7 @@ namespace FocalCompiler
                 // in case of an error second pass: try to decode with wider black bars
                 if (checkResult != ScanResult.ProgramCode)
                 {
-                    checkResult = CheckDecodeBarcodeRow(blacks, y, area.Left, area.Right, true, lastCheckSum, out newCheckSum, out data);
+                    checkResult = CheckDecodeBarcodeRow(blacks, y, area.Left, area.Right, true, lastCheckSum, out checkSum, out data);
                     SetLastResult(checkResult);
 
                     if (checkResult == ScanResult.NoProgramCode)
@@ -639,6 +662,8 @@ namespace FocalCompiler
                     return ScanResult.NoProgramCode;
                 }
 
+                newCheckSum = checkSum;
+
                 programData = new byte[data.Length - ProgramBarcodeHeaderLength];
                 Array.Copy(data, ProgramBarcodeHeaderLength, programData, 0, data.Length - ProgramBarcodeHeaderLength);
 
@@ -650,20 +675,22 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        ScanResult CheckDecodeBarcodeRow(byte[,] blacks, int row, int leftX, int rightX, bool checkWider, int lastCheckSum, out int newCheckSum, out byte[] data)
+        private ScanResult CheckDecodeBarcodeRow(byte[,] blacks, int row, int leftX, int rightX, bool checkWider, int lastCheckSum, out int newCheckSum, out byte[] data)
         {
-            var check = DecodeBarcodeRow(blacks, row, leftX, rightX, checkWider, out data);
+            var result = DecodeBarcodeRow(blacks, row, leftX, rightX, checkWider, out data);
 
-            if (!check || data.Count() < MinProgramBarcodeLength)
+            if (result != DecodeBarcodeRowResult.Ok || data.Count() < MinProgramBarcodeLength)
             {
                 newCheckSum = 0;
-                return ScanResult.NoBarcode;
+                return ScanResult.NoBarcodeFound;
             }
 
-            check = CheckSum(data, lastCheckSum, out newCheckSum);
+            var check = CheckSum(data, lastCheckSum, out int checkSum);
 
             if (!check)
             {
+                newCheckSum = 0;
+
                 if (data.Length < 10)
                 {
                     check = CheckSum(data, 0, out int _);
@@ -678,12 +705,14 @@ namespace FocalCompiler
                 return ScanResult.CheckSumError;
             }
 
+            newCheckSum = checkSum;
+
             return ScanResult.ProgramCode;
         }
 
         /////////////////////////////////////////////////////////////
 
-        private bool DecodeBarcodeRow(byte[,] blacks, int row, int leftX, int rightX, bool checkWider, out byte[] data)
+        private DecodeBarcodeRowResult DecodeBarcodeRow(byte[,] blacks, int row, int leftX, int rightX, bool checkWider, out byte[] data)
         {
             data = null;
 
@@ -701,7 +730,7 @@ namespace FocalCompiler
 
             if (firstBlackX == rightX)
             {
-                return false;
+                return DecodeBarcodeRowResult.EmptyRow;
             }
 
             int lastBlackX = rightX;
@@ -716,10 +745,15 @@ namespace FocalCompiler
                 lastBlackX--;
             }
 
-            // left and right black pixel shouldn't be too far away from the box's bounds
-            if (firstBlackX == lastBlackX || firstBlackX > leftX * 1.3 || lastBlackX < rightX * 0.7)
+            if (firstBlackX == lastBlackX)
             {
-                return false;
+                return DecodeBarcodeRowResult.InvalidRowWithinBounds;
+            }
+
+            // left and right black pixel shouldn't be too far away from the box's bounds
+            if (firstBlackX > leftX * 1.3 || lastBlackX < rightX * 0.7)
+            {
+                return DecodeBarcodeRowResult.EmptyRow;
             }
 
             var blackbars = new List<int>();
@@ -777,7 +811,7 @@ namespace FocalCompiler
             // is always full bytes
             if (blackbars.Count < 4 + MinProgramBarcodeLength * 8 || ((blackbars.Count - 4) % 8) != 0)
             {
-                return false;
+                return DecodeBarcodeRowResult.InvalidNumberOfBars;
             }
 
             int minNarrowBarWidth = whiteBarsStatistics.Min();
@@ -785,7 +819,7 @@ namespace FocalCompiler
 
             if (maxNarrowBarWidth > 3 * minNarrowBarWidth)
             {
-                return false;
+                return DecodeBarcodeRowResult.InvalidNarrowBarWidthDistribution;
             }
 
             int minWideBarWidth;
@@ -834,7 +868,7 @@ namespace FocalCompiler
             // check start and end signature
             if (!(!bools[0] && !bools[1] && bools[numBars - 2] && !bools[numBars - 1]))
             {
-                return false;
+                return DecodeBarcodeRowResult.InvalidSignature;
             }
 
             byte[] bytes = new byte[(numBars - 4) / 8];
@@ -854,7 +888,7 @@ namespace FocalCompiler
 
             data = bytes;
 
-            return true;
+            return DecodeBarcodeRowResult.Ok;
         }
 
         /////////////////////////////////////////////////////////////

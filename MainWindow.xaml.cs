@@ -266,7 +266,7 @@ namespace FocalMaster
         private void ButtonExportBarcode(object sender, RoutedEventArgs e)
         {
             var saveDialog = new System.Windows.Forms.SaveFileDialog();
-            saveDialog.Filter = "PDF File (*.pdf)|*.pdf|JPG File (*.jpg)|*.jpg|PNG File (*.png)|*.png|TIF File (*.tif)|*.tif|SVG File (*.svg)|*.svg";
+            saveDialog.Filter = "PDF File (*.pdf)|*.pdf|JPG File (*.jpg)|*.jpg|PNG File (*.png)|*.png|TIF File (*.tif)|*.tif|SVG File (*.svg)|*.svg|EMF File (*.emf)|*.emf";
 
             System.Windows.Forms.DialogResult result = saveDialog.ShowDialog();
 
@@ -345,6 +345,22 @@ namespace FocalMaster
                         var generator = new SvgBarcodeGenerator();
 
                         if (generator.GenerateSvg(Focal.Text, saveDialog.FileName))
+                        {
+                            ShowErrors.Text = string.Empty;
+                        }
+                        else
+                        {
+                            ShowErrors.Text = string.Join("\n", generator.Errors);
+                        }
+
+                        break;
+                    }
+
+                    case ".emf":
+                    {
+                        var generator = new EmfBarcodeGenerator();
+
+                        if (generator.GenerateEmf(Focal.Text, saveDialog.FileName))
                         {
                             ShowErrors.Text = string.Empty;
                         }
