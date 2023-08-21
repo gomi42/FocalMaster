@@ -38,7 +38,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private string imageBaseFilename;
+        private string filename;
         private Metafile metafile;
         private Graphics graphics;
         private int currentPage;
@@ -50,7 +50,7 @@ namespace FocalCompiler
 
         public bool GenerateEmf(string focal, string outputBaseFilename)
         {
-            imageBaseFilename = Path.Combine(Path.GetDirectoryName(outputBaseFilename), Path.GetFileNameWithoutExtension(outputBaseFilename));
+            filename = outputBaseFilename;
             currentPage = 1;
 
             return Generate(focal, false);
@@ -80,7 +80,8 @@ namespace FocalCompiler
             Graphics referenceGraphics = Graphics.FromImage(bitmap);
             IntPtr referenceHdc = referenceGraphics.GetHdc();
 
-            metafile = new Metafile(imageBaseFilename + "-" + currentPage.ToString() + ".emf", referenceHdc, EmfType.EmfOnly);
+            var baseFilename = Path.Combine(Path.GetDirectoryName(filename), Path.GetFileNameWithoutExtension(filename));
+            metafile = new Metafile(baseFilename + "-" + currentPage.ToString() + Path.GetExtension(filename), referenceHdc, EmfType.EmfOnly);
 
             referenceGraphics.ReleaseHdc(referenceHdc);
             referenceGraphics.Dispose();
