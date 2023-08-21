@@ -1,7 +1,14 @@
 # Focal Master
 The FocalMaster lets you
 - scan barcode files and convert them to a readable HP-41 FOCAL program
-- create barcodes as PDF, JPG, PNG, TIF, EMF or SVG files or for display on the screen
+- export barcodes in the following file formats:
+  - PDF
+  - JPG
+  - PNG
+  - TIF
+  - EMF (Enhanced Metafile)
+  - SVG
+- display barcodes on the screen
 - edit the FOCAL program
 - import a raw file and convert it to a readable FOCAL program
 - export the FOCAL program to a raw file (used by simulators)
