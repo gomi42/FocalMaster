@@ -23,7 +23,7 @@ using System.Windows.Media.Imaging;
 
 namespace FocalCompiler
 {
-    internal class TifBarcodeGenerator : ImageBarcodeGenerator
+    internal class TifBarcodeGenerator : BitmapBarcodeGenerator
     {
         protected override string GetFileExtension() => ".tif";
 

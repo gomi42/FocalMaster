@@ -23,7 +23,7 @@ using System.Windows.Media.Imaging;
 
 namespace FocalCompiler
 {
-    internal class JpgBarcodeGenerator : ImageBarcodeGenerator
+    internal class JpgBarcodeGenerator : BitmapBarcodeGenerator
     {
         protected override string GetFileExtension() => ".jpg";
 

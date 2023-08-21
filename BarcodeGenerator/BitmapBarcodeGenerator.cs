@@ -27,7 +27,7 @@ using System.Windows.Media.Imaging;
 
 namespace FocalCompiler
 {
-    internal abstract class ImageBarcodeGenerator : BarcodeGenerator
+    internal abstract class BitmapBarcodeGenerator : BarcodeGenerator
     {
         private const int PrintAtDpi = 300;
         private const double mmToPrintPx = PrintAtDpi / 25.4;

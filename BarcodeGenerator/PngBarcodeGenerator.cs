@@ -23,7 +23,7 @@ using System.Windows.Media.Imaging;
 
 namespace FocalCompiler
 {
-    internal class PngBarcodeGenerator : ImageBarcodeGenerator
+    internal class PngBarcodeGenerator : BitmapBarcodeGenerator
     {
         protected override string GetFileExtension() => ".png";
 
