@@ -25,8 +25,6 @@ namespace FocalCompiler
 {
     internal class JpgBarcodeGenerator : BitmapBarcodeGenerator
     {
-        protected override string GetFileExtension() => ".jpg";
-
         protected override BitmapEncoder GetEncoder()
         {
             var enc = new JpegBitmapEncoder();

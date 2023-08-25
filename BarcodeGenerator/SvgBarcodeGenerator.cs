@@ -42,7 +42,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private string imageBaseFilename;
+        private string filename;
         private StreamWriter svgWriter;
         private double currentX;
         private double currentY;
@@ -56,7 +56,7 @@ namespace FocalCompiler
 
         public bool GenerateSvg(string focal, string outputBaseFilename)
         {
-            imageBaseFilename = Path.Combine(Path.GetDirectoryName(outputBaseFilename), Path.GetFileNameWithoutExtension(outputBaseFilename));
+            filename = outputBaseFilename;
             currentPage = 1;
 
             return Generate(focal, false);
@@ -84,7 +84,8 @@ namespace FocalCompiler
         {
             try
             {
-                svgWriter = new StreamWriter(imageBaseFilename + "-" + currentPage.ToString() + ".svg");
+                var baseFilename = Path.Combine(Path.GetDirectoryName(filename), Path.GetFileNameWithoutExtension(filename));
+                svgWriter = new StreamWriter(baseFilename + "-" + currentPage.ToString() + Path.GetExtension(filename));
 
                 svgWriter.WriteLine("<?xml version=\"1.0\" standalone=\"no\"?>");
                 svgWriter.WriteLine("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">");

@@ -25,8 +25,6 @@ namespace FocalCompiler
 {
     internal class TifBarcodeGenerator : BitmapBarcodeGenerator
     {
-        protected override string GetFileExtension() => ".tif";
-
         protected override BitmapEncoder GetEncoder()
         {
             var enc = new TiffBitmapEncoder();

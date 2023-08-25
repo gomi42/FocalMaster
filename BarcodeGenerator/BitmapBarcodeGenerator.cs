@@ -50,7 +50,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private string imageBaseFilename;
+        private string filename;
         private string printFilename;
         private DrawingVisual drawingVisual;
         private DrawingContext drawingContext;
@@ -63,7 +63,7 @@ namespace FocalCompiler
 
         public bool GenerateImage(string focal, string outputBaseFilename)
         {
-            imageBaseFilename = Path.Combine(Path.GetDirectoryName(outputBaseFilename), Path.GetFileNameWithoutExtension(outputBaseFilename));
+            filename = outputBaseFilename;
             printFilename = Path.GetFileName(outputBaseFilename);
             currentPage = 1;
 
@@ -88,7 +88,8 @@ namespace FocalCompiler
             BitmapEncoder enc = GetEncoder();
             enc.Frames.Add(BitmapFrame.Create(targetBitmap));
 
-            FileStream fs = new FileStream(imageBaseFilename + "-" + currentPage.ToString() + GetFileExtension(), FileMode.Create);
+            var baseFilename = Path.Combine(Path.GetDirectoryName(filename), Path.GetFileNameWithoutExtension(filename));
+            FileStream fs = new FileStream(baseFilename + "-" + currentPage.ToString() + Path.GetExtension(filename), FileMode.Create);
             enc.Save(fs);
             fs.Flush();
             fs.Close();
@@ -98,8 +99,6 @@ namespace FocalCompiler
         }
 
         /////////////////////////////////////////////////////////////
-
-        protected abstract string GetFileExtension();
 
         protected abstract BitmapEncoder GetEncoder();
 
