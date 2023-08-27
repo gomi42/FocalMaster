@@ -111,7 +111,9 @@ As shown below the command "CF 29" is recognized as a barcode but ignored becaus
 ![barcode view](Images/Debug.jpg)
 
 ### Acknowledgment
-The FocalMaster uses the PdfSharp library from Stefan Lange, empira Software GmbH.
+The FocalMaster uses 
+- the PdfSharp library from Stefan Lange, empira Software GmbH.
+- the PdfSharp.Extensions from gheeres
 
 ### The Barcode Finding Algorithm
 The following steps are processed in order to find barcodes in an image:

@@ -66,9 +66,9 @@ namespace FocalMaster
 
             foreach (var file in files)
             {
-                var ext = Path.GetExtension(file);
+                var ext = Path.GetExtension(file).ToLower();
 
-                if (ext != ".tif" && ext != ".jpg" && ext != ".png")
+                if (ext != ".tif" && ext != ".jpg" && ext != ".png" && ext != ".pdf")
                 {
                     e.Effects = DragDropEffects.None;
                     break;
@@ -95,7 +95,7 @@ namespace FocalMaster
         private void ButtonAdd(object sender, RoutedEventArgs e)
         {
             var openDialog = new System.Windows.Forms.OpenFileDialog();
-            openDialog.Filter = "Image Files (*.tif; *.jpg; *.png)|*.tif;*.jpg;*.png";
+            openDialog.Filter = "Image Files (*.tif; *.jpg; *.png;)|*.tif;*.jpg;*.png|PDF Files (*.pdf)|*.pdf";
             openDialog.Multiselect = true;
 
             System.Windows.Forms.DialogResult result = openDialog.ShowDialog();

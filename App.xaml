@@ -23,6 +23,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:FocalMaster"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
@@ -333,6 +334,11 @@
                                 <Track Name="PART_Track"
                                        IsDirectionReversed="true"
                                        IsEnabled="{TemplateBinding IsMouseOver}">
+                                    <Track.Resources>
+                                        <sys:Double x:Key="{x:Static SystemParameters.VerticalScrollBarButtonHeightKey}">
+                                            60
+                                        </sys:Double>
+                                    </Track.Resources>
                                     <Track.DecreaseRepeatButton>
                                         <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}"
                                                       Style="{StaticResource ScrollBarPageButton}" />
@@ -369,6 +375,11 @@
                                           SnapsToDevicePixels="true">
                                         <Track Name="PART_Track"
                                                IsEnabled="{TemplateBinding IsMouseOver}">
+                                            <Track.Resources>
+                                                <sys:Double x:Key="{x:Static SystemParameters.HorizontalScrollBarButtonWidthKey}">
+                                                    60
+                                                </sys:Double>
+                                            </Track.Resources>
                                             <Track.DecreaseRepeatButton>
                                                 <RepeatButton Command="{x:Static ScrollBar.PageLeftCommand}"
                                                               Style="{StaticResource ScrollBarPageButton}" />
