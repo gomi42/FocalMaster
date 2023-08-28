@@ -6,7 +6,7 @@
 //
 // This file is part of FocalMaster.
 //
-// The FocalMaster is free software: you can redistribute it and/or modify
+// ShapeConverter is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
@@ -19,18 +19,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
-using System.Windows.Media.Imaging;
+using System.Collections.Generic;
+using System.Windows.Media;
+using PdfSharp.Pdf;
+using ShapeConverter.BusinessLogic.Parser.Pdf.Function;
+using ShapeConverter.Parser.Pdf;
 
-namespace FocalCompiler
+namespace ShapeConverter.BusinessLogic.Parser.Pdf.Pattern
 {
-    internal class TifBarcodeGenerator : BitmapBarcodeGenerator
+    /// <summary>
+    /// The IPattern interface
+    /// </summary>
+    internal interface IPattern
     {
-        protected override BitmapEncoder GetEncoder()
-        {
-            var enc = new TiffBitmapEncoder();
-            enc.Compression = TiffCompressOption.Zip;
+        /// <summary>
+        /// Init
+        /// </summary>
+        void Init(PdfDictionary dict);
 
-            return enc;
-        }
+        /// <summary>
+        /// Gets a brush
+        /// </summary>
+        GraphicBrush GetBrush(Matrix matrix, PdfRect rect, double alpha, List<FunctionStop> softMask);
     }
 }

@@ -110,13 +110,6 @@
                             Click="ButtonScan"
                             Content="Scan"
                             ToolTip="Start scanning the files in the listed order" />
-                    <!--<Button Grid.Column="1"
-                            Margin="0,380,0,0"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Top"
-                            Click="ButtonScan2"
-                            Content="Scan2"
-                            ToolTip="Start scanning the files in the listed order" />-->
                 </Grid>
             </TabItem>
             <TabItem Header="FOCAL Source">

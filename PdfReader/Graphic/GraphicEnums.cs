@@ -6,7 +6,7 @@
 //
 // This file is part of FocalMaster.
 //
-// The FocalMaster is free software: you can redistribute it and/or modify
+// ShapeConverter is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
@@ -19,18 +19,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see<http://www.gnu.org/licenses/>.
 
-using System.Windows.Media.Imaging;
-
-namespace FocalCompiler
+namespace ShapeConverter
 {
-    internal class TifBarcodeGenerator : BitmapBarcodeGenerator
+    /// <summary>
+    /// The graphic fill rule
+    /// </summary>
+    public enum GraphicFillRule
     {
-        protected override BitmapEncoder GetEncoder()
-        {
-            var enc = new TiffBitmapEncoder();
-            enc.Compression = TiffCompressOption.Zip;
+        EvenOdd,
+        NoneZero
+    }
 
-            return enc;
-        }
+    /// <summary>
+    /// The brush mapping mode
+    /// </summary>
+    public enum GraphicBrushMappingMode
+    {
+        RelativeToBoundingBox,
+        Absolute
     }
 }

@@ -25,8 +25,6 @@ namespace FocalCompiler
 {
     internal class PngBarcodeGenerator : BitmapBarcodeGenerator
     {
-        protected override string GetFileExtension() => ".png";
-
         protected override BitmapEncoder GetEncoder()
         {
             var enc = new PngBitmapEncoder();

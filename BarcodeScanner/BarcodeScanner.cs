@@ -23,11 +23,44 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using FocalDecompiler;
+using ShapeConverter.Parser.Pdf;
 
 namespace FocalCompiler
 {
+    /////////////////////////////////////////////////////////////
+
+    internal enum ScanerResultId
+    {
+        NoBarcodeFound,
+        NoProgramCode,
+        InvalidSignature,
+        CheckSumError,
+        ProgramCode,
+        CannotOpenFile,
+        NoEndDected
+    }
+
+    /////////////////////////////////////////////////////////////
+
+    internal class ScannerResult
+    {
+        public ScannerResult()
+        {
+        }
+
+        public ScannerResult(ScanerResultId scanResult, string filename)
+        {
+            ScanResult = scanResult;
+            Filename = filename;
+        }
+
+        public ScanerResultId ScanResult;
+        public string Filename;
+    }
+
     /////////////////////////////////////////////////////////////
 
     internal enum EdgeOrientation : byte
@@ -36,20 +69,21 @@ namespace FocalCompiler
         Vertical,
         Horizontal
     }
-    
+
     /////////////////////////////////////////////////////////////
 
     internal enum ScanResult
     {
         NoBarcodeFound = 0,
         NoProgramCode = 1,
-        CheckSumError = 2,
-        ProgramCode = 3
+        InvalidSignature = 2,
+        CheckSumError = 3,
+        ProgramCode = 4
     }
 
     /////////////////////////////////////////////////////////////
 
-    internal class ErrorImageData
+    internal class ImageResults
     {
         public string Filename;
         public byte[,] GrayImage;
@@ -72,6 +106,12 @@ namespace FocalCompiler
             InvalidSignature
         }
 
+        struct BitmapInfo
+        {
+            public Bitmap Bitmap;
+            public string Filename;
+        }
+
         private const int ProgramBarcodeHeaderLength = 3;
         private const int MinProgramBarcodeLength = ProgramBarcodeHeaderLength + 1;
 
@@ -80,148 +120,123 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        public List<string> Errors { get; private set; }
-
-        public ErrorImageData ErrorImageData { get; private set; }
+        public List<ScannerResult> ScannerResults { get; private set; }
 
         /////////////////////////////////////////////////////////////
 
         public string Scan(List<string> files)
         {
-            Errors = new List<string>();
+            ScannerResults = new List<ScannerResult>();
             var programCode = new List<byte>();
             int lastCheckSum = 0;
             int currentRow = 0;
+            string focal = null;
 
-            foreach (var file in files)
+            var bitmapInfos = GetBitmaps(files);
+
+            foreach (var bitmapInfo in bitmapInfos)
             {
-                var bitmap = (Bitmap)Image.FromFile(file);
-                var grayImage = CreateGrayScale(bitmap);
-                var binaryImage = Binarize(grayImage);
-                var edges = GetEdges(binaryImage);
+                ScanResult fileScanResult = ScanOneBitmap(bitmapInfo, ref lastCheckSum, ref currentRow, out List<byte> code, out _);
+                ScannerResults.Add(GetScannerResult(fileScanResult, bitmapInfo.Filename));
+                bitmapInfo.Bitmap.Dispose();
 
-                var boxSize = MinBoxSize;
-                ScanResult scanResult;
-                List<Rectangle> barcodeAreas;
-                List<ScanResult> areaResults;
-                List<byte> code;
-
-                do
+                switch (fileScanResult)
                 {
-                    var boxes = FindBoxes(edges, boxSize);
-                    barcodeAreas = CombineBoxesToAreas(boxes, boxSize);
+                    case ScanResult.CheckSumError:
+                        return null;
 
-                    scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out code, out areaResults);
-
-                    boxSize += 1;
+                    case ScanResult.ProgramCode:
+                        programCode.AddRange(code);
+                        break;
                 }
-                while (boxSize < MaxBoxSize && scanResult != ScanResult.ProgramCode && scanResult != ScanResult.NoProgramCode);
-
-                if (scanResult != ScanResult.ProgramCode)
-                {
-                    switch (scanResult)
-                    {
-                        case ScanResult.NoBarcodeFound:
-                            Errors.Add($"No barcodes found in {file}");
-                            break;
-
-                        case ScanResult.NoProgramCode:
-                            Errors.Add($"No program barcodes found in {file}");
-                            break;
-
-                        case ScanResult.CheckSumError:
-                            Errors.Add($"Checksum error in {file}");
-                            break;
-                    }
-
-                    ErrorImageData = new ErrorImageData { Filename = file, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
-
-                    bitmap.Dispose();
-                    return null;
-                }
-
-                programCode.AddRange(code);
-                bitmap.Dispose();
             }
 
-            var decomp = new Decompiler();
-            decomp.Decompile(programCode, out string focal);
+            if (programCode.Count > 0)
+            {
+                var decomp = new Decompiler();
+                var endDetected = decomp.Decompile(programCode, out focal);
 
-            ErrorImageData = null;
+                if (!endDetected)
+                {
+                    ScannerResults.Add(new ScannerResult(ScanerResultId.NoEndDected, ""));
+                }
+            }
 
             return focal;
         }
 
         /////////////////////////////////////////////////////////////
 
-        public List<ErrorImageData> ScanDebug(List<string> files)
+        public List<ImageResults> ScanDebug(List<string> files)
         {
-            Errors = new List<string>();
+            ScannerResults = new List<ScannerResult>();
+            var imageResults = new List<ImageResults>();
             int lastCheckSum = 0;
             int currentRow = 0;
-            var results = new List<ErrorImageData>();
 
-            foreach (var file in files)
+            var bitmapInfos = GetBitmaps(files);
+
+            foreach (var bitmapInfo in bitmapInfos)
             {
-                var bitmap = (Bitmap)Image.FromFile(file);
-                var grayImage = CreateGrayScale(bitmap);
-                var binaryImage = Binarize(grayImage);
-                var edges = GetEdges(binaryImage);
-
-                var boxSize = MinBoxSize;
-                ScanResult scanResult;
-                List<Rectangle> barcodeAreas;
-                List<ScanResult> areaResults;
-
-                do
-                {
-                    var boxes = FindBoxes(edges, boxSize);
-                    barcodeAreas = CombineBoxesToAreas(boxes, boxSize);
-
-                    scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out _, out areaResults);
-
-                    boxSize += 1;
-                }
-                while (boxSize <= MaxBoxSize && scanResult != ScanResult.ProgramCode && scanResult != ScanResult.NoProgramCode);
-
-                var imageData = new ErrorImageData { Filename = file, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
-                results.Add(imageData);
-
-                if (scanResult != ScanResult.ProgramCode)
-                {
-                    switch (scanResult)
-                    {
-                        case ScanResult.NoBarcodeFound:
-                            Errors.Add($"No barcodes found in {file}");
-                            break;
-
-                        case ScanResult.NoProgramCode:
-                            Errors.Add($"No program barcodes found in {file}");
-                            break;
-
-                        case ScanResult.CheckSumError:
-                            Errors.Add($"Checksum error in {file}");
-                            break;
-                    }
-                }
-
-                bitmap.Dispose();
+                ScanResult fileScanResult = ScanOneBitmap(bitmapInfo, ref lastCheckSum, ref currentRow, out _, out ImageResults imageResult);
+                ScannerResults.Add(GetScannerResult(fileScanResult, bitmapInfo.Filename));
+                imageResults.Add(imageResult);
+                bitmapInfo.Bitmap.Dispose();
             }
 
-            return results;
+            return imageResults;
         }
 
         /////////////////////////////////////////////////////////////
 
-        public List<ErrorImageData> ScanDebugBoxes(List<string> files)
+        private ScanResult ScanOneBitmap(BitmapInfo bitmapInfo, ref int lastCheckSum, ref int currentRow, out List<byte> code, out ImageResults imageResult)
         {
-            Errors = new List<string>();
-            var results = new List<ErrorImageData>();
+            var grayImage = CreateGrayScale(bitmapInfo.Bitmap);
+            var binaryImage = Binarize(grayImage);
+            var edges = GetEdges(binaryImage);
+
+            var boxSize = MinBoxSize;
+            ScanResult scanResult;
+            ScanResult fileScanResult = ScanResult.NoBarcodeFound;
+            List<Rectangle> barcodeAreas;
+            List<ScanResult> areaResults;
+
+            do
+            {
+                var boxes = FindBoxes(edges, boxSize);
+                barcodeAreas = CombineBoxesToAreas(boxes, boxSize);
+
+                scanResult = DecodeBarcodes(binaryImage, barcodeAreas, ref lastCheckSum, ref currentRow, out code, out areaResults);
+
+                if (scanResult > fileScanResult)
+                {
+                    fileScanResult = scanResult;
+                }
+
+                boxSize += 1;
+            }
+            while (boxSize <= MaxBoxSize && fileScanResult != ScanResult.ProgramCode);
+
+            imageResult = new ImageResults { Filename = bitmapInfo.Filename, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
+
+            return fileScanResult;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        public List<ImageResults> ScanDebugBoxes(List<string> files)
+        {
+            ScannerResults = new List<ScannerResult>();
+            var results = new List<ImageResults>();
 
             var file = files[0];
 
-            var bitmap = (Bitmap)Image.FromFile(file);
-            var grayImage = CreateGrayScale(bitmap);
+            var bitmaps = GetBitmaps(files);
+            var enu = bitmaps.GetEnumerator();
+            enu.MoveNext();
+            BitmapInfo bitmapInfo = enu.Current;
+
+            var grayImage = CreateGrayScale(bitmapInfo.Bitmap);
             var binaryImage = Binarize(grayImage);
             var edges = GetEdges(binaryImage);
 
@@ -229,22 +244,108 @@ namespace FocalCompiler
             var boxes = FindBoxes(edges, boxSize);
             var areas = CombineBoxesToAreas(boxes, boxSize);
 
-            var imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage};
+            var imageData = new ImageResults { Filename = file, GrayImage = binaryImage };
             results.Add(imageData);
 
-            imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
+            imageData = new ImageResults { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
             results.Add(imageData);
 
             areas = CreateBoxAreas(boxes, boxSize);
-            imageData = new ErrorImageData { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
+            imageData = new ImageResults { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
             results.Add(imageData);
 
-            imageData = new ErrorImageData { Filename = file, Edges = edges, BarcodeAreas = null, AreaResults = null };
+            imageData = new ImageResults { Filename = file, Edges = edges, BarcodeAreas = null, AreaResults = null };
             results.Add(imageData);
 
-            bitmap.Dispose();
+            bitmapInfo.Bitmap.Dispose();
 
             return results;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private IEnumerable<BitmapInfo> GetBitmaps(List<string> files)
+        {
+            foreach (var file in files)
+            {
+                string filename = Path.GetFileName(file);
+
+                if (Path.GetExtension(file).ToLower() == ".pdf")
+                {
+                    IEnumerable<Bitmap> bitmaps = null;
+
+                    try
+                    {
+                        var pdfParser = new PdfParser();
+                        bitmaps = pdfParser.Parse(file);
+                    }
+                    catch
+                    {
+                        ScannerResults.Add(new ScannerResult(ScanerResultId.CannotOpenFile, filename));
+                    }
+
+                    if (bitmaps != null)
+                    {
+                        int i = 1;
+
+                        foreach (var pdfBitmap in bitmaps)
+                        {
+                            yield return new BitmapInfo { Bitmap = pdfBitmap, Filename = $"{filename}, page/image {i++}" };
+                        }
+                    }
+                }
+                else
+                {
+                    Bitmap imageBitmap = null;
+
+                    try
+                    {
+                        imageBitmap = (Bitmap)Image.FromFile(file);
+                    }
+                    catch
+                    {
+                        ScannerResults.Add(new ScannerResult(ScanerResultId.CannotOpenFile, filename));
+                    }
+
+                    if (imageBitmap != null)
+                    {
+                        yield return new BitmapInfo { Bitmap = imageBitmap, Filename = $"{filename}" };
+                    }
+                }
+            }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private ScannerResult GetScannerResult(ScanResult scanResult, string filename)
+        {
+            ScannerResult result = new ScannerResult();
+            result.Filename = filename;
+
+            switch (scanResult)
+            {
+                case ScanResult.NoBarcodeFound:
+                    result.ScanResult = ScanerResultId.NoBarcodeFound;
+                    break;
+
+                case ScanResult.NoProgramCode:
+                    result.ScanResult = ScanerResultId.NoProgramCode;
+                    break;
+
+                case ScanResult.InvalidSignature:
+                    result.ScanResult = ScanerResultId.InvalidSignature;
+                    break;
+
+                case ScanResult.CheckSumError:
+                    result.ScanResult = ScanerResultId.CheckSumError;
+                    break;
+
+                case ScanResult.ProgramCode:
+                    result.ScanResult = ScanerResultId.ProgramCode;
+                    break;
+            }
+
+            return result;
         }
 
         /////////////////////////////////////////////////////////////
@@ -342,6 +443,7 @@ namespace FocalCompiler
         private List<Rectangle> CombineBoxesToAreas(bool[,] boxes, int boxSize)
         {
             const int MinBoxesHeight = 3;
+            const int MaxBoxesHeight = 30;
             const int MinBoxesWidth = 5;
 
             var areas = new List<Rectangle>();
@@ -349,47 +451,10 @@ namespace FocalCompiler
             var height = boxes.GetLength(1);
             bool[,] visited = new bool[width, height];
 
-            int minX;
-            int maxX;
-            int minY;
-            int maxY;
-
-            ///////////////////////////////////
-
-            bool FindNextXY(int startFindX, int startFindY, int yToStartXAt0, out int foundX, out int foundY)
-            {
-                foundX = -1;
-                foundY = -1;
-
-                while (startFindY < height)
-                {
-                    foundX = -1;
-
-                    for (int x = startFindX; x < width; x++)
-                    {
-                        if (boxes[x, startFindY] && !visited[x, startFindY])
-                        {
-                            foundX = x;
-                            break;
-                        }
-                    }
-
-                    if (foundX > 0)
-                    {
-                        foundY = startFindY;
-                        return true;
-                    }
-
-                    startFindY++;
-
-                    if (startFindY > yToStartXAt0)
-                    {
-                        startFindX = 0;
-                    }
-                }
-
-                return false;
-            }
+            int areaMinX;
+            int areaMaxX;
+            int areaMinY;
+            int areaMaxY;
 
             ///////////////////////////////////
 
@@ -412,17 +477,17 @@ namespace FocalCompiler
                     return;
                 }
 
-                if (areaX < minX)
-                    minX = areaX;
+                if (areaX < areaMinX)
+                    areaMinX = areaX;
 
-                if (areaX > maxX)
-                    maxX = areaX;
+                if (areaX > areaMaxX)
+                    areaMaxX = areaX;
 
-                if (areaY < minY)
-                    minY = areaY;
+                if (areaY < areaMinY)
+                    areaMinY = areaY;
 
-                if (areaY > maxY)
-                    maxY = areaY;
+                if (areaY > areaMaxY)
+                    areaMaxY = areaY;
 
                 DetermineArea(areaX - 1, areaY);
                 DetermineArea(areaX + 1, areaY);
@@ -437,8 +502,8 @@ namespace FocalCompiler
             bool IsNumberOfBoxesInRange(int testY, int minAreaWidth)
             {
                 int count = 0;
-                    
-                for (int x = minX; x <= maxX; x++)
+
+                for (int x = areaMinX; x <= areaMaxX; x++)
                 {
                     if (boxes[x, testY])
                     {
@@ -458,16 +523,16 @@ namespace FocalCompiler
 
             void ShrinkArea()
             {
-                var minBoxesInRow = ((maxX - minX + 1) * 8) / 10;
+                var minBoxesInRow = ((areaMaxX - areaMinX + 1) * 8) / 10;
 
-                while (!IsNumberOfBoxesInRange(minY, minBoxesInRow) && minY <= maxY - 2)
+                while (!IsNumberOfBoxesInRange(areaMinY, minBoxesInRow) && areaMinY <= areaMaxY - 2)
                 {
-                    minY++;
+                    areaMinY++;
                 }
 
-                while (!IsNumberOfBoxesInRange(maxY, minBoxesInRow) && maxY >= minY + 2)
+                while (!IsNumberOfBoxesInRange(areaMaxY, minBoxesInRow) && areaMaxY >= areaMinY + 2)
                 {
-                    maxY--;
+                    areaMaxY--;
                 }
             }
 
@@ -475,11 +540,11 @@ namespace FocalCompiler
 
             void SplitArea()
             {
-                var minBoxesInRow = (maxX - minX + 1) / 7;
-                int areaStartY = minY;
+                var minBoxesInRow = (areaMaxX - areaMinX + 1) / 7;
+                int areaStartY = areaMinY;
                 int areaEndY;
 
-                while (areaStartY < maxY)
+                while (areaStartY < areaMaxY)
                 {
                     areaEndY = areaStartY;
 
@@ -487,13 +552,13 @@ namespace FocalCompiler
                     {
                         areaEndY++;
                     }
-                    while (areaEndY <= maxY && IsNumberOfBoxesInRange(areaEndY, minBoxesInRow));
+                    while (areaEndY <= areaMaxY && IsNumberOfBoxesInRange(areaEndY, minBoxesInRow));
 
                     areaEndY--;
 
                     if ((areaEndY - areaStartY + 1) >= MinBoxesHeight)
                     {
-                        var re = new Rectangle(minX * boxSize, areaStartY * boxSize, (maxX - minX) * boxSize + boxSize, (areaEndY - areaStartY) * boxSize + boxSize);
+                        var re = new Rectangle(areaMinX * boxSize, areaStartY * boxSize, (areaMaxX - areaMinX + 1) * boxSize, (areaEndY - areaStartY + 1) * boxSize);
                         areas.Add(re);
                     }
 
@@ -501,7 +566,7 @@ namespace FocalCompiler
                     {
                         areaEndY++;
                     }
-                    while (areaEndY <= maxY && !IsNumberOfBoxesInRange(areaEndY, minBoxesInRow));
+                    while (areaEndY <= areaMaxY && !IsNumberOfBoxesInRange(areaEndY, minBoxesInRow));
 
                     areaStartY = areaEndY;
                 }
@@ -509,46 +574,34 @@ namespace FocalCompiler
 
             ///////////////////////////////////
 
-            int y = 0;
-            int lastMaxX = 0;
-            int lastMaxY = 0;
-
-            while (y < height)
+            for (int y = 0; y < height; y++)
             {
-                if (!FindNextXY(lastMaxX, y, lastMaxY, out int foundX, out int foundY))
+                for (int x = 0; x < width; x++)
                 {
-                    y++;
-                    continue;
-                }
-
-                minX = int.MaxValue;
-                maxX = int.MinValue;
-                minY = int.MaxValue;
-                maxY = int.MinValue;
-
-                DetermineArea(foundX, foundY);
-
-                if (minX < int.MaxValue)
-                {
-                    if ((maxX - minX + 1) >= MinBoxesWidth && (maxY - minY + 1) >= MinBoxesHeight)
+                    if (!boxes[x, y] || visited[x, y])
                     {
-                        ShrinkArea();
-
-                        if ((maxY - minY + 1) >= MinBoxesHeight)
-                        {
-                            SplitArea();
-                        }
+                        continue;
                     }
 
-                    y = foundY;
-                    lastMaxX = maxX;
-                    lastMaxY = maxY;
-                }
-                else
-                {
-                    y++;
-                    lastMaxX = 0;
-                    lastMaxY = 0;
+                    areaMinX = int.MaxValue;
+                    areaMaxX = int.MinValue;
+                    areaMinY = int.MaxValue;
+                    areaMaxY = int.MinValue;
+
+                    DetermineArea(x, y);
+
+                    if (areaMinX < int.MaxValue)
+                    {
+                        if ((areaMaxX - areaMinX + 1) >= MinBoxesWidth && (areaMaxY - areaMinY + 1) >= MinBoxesHeight && (areaMaxY - areaMinY + 1) <= MaxBoxesHeight)
+                        {
+                            ShrinkArea();
+
+                            if ((areaMaxY - areaMinY + 1) >= MinBoxesHeight)
+                            {
+                                SplitArea();
+                            }
+                        }
+                    }
                 }
             }
 
@@ -574,6 +627,11 @@ namespace FocalCompiler
                 if (scanResult == ScanResult.CheckSumError)
                 {
                     return ScanResult.CheckSumError;
+                }
+
+                if (scanResult == ScanResult.InvalidSignature)
+                {
+                    return ScanResult.InvalidSignature;
                 }
 
                 if (scanResult > lastResult)
@@ -678,6 +736,12 @@ namespace FocalCompiler
         private ScanResult CheckDecodeBarcodeRow(byte[,] blacks, int row, int leftX, int rightX, bool checkWider, int lastCheckSum, out int newCheckSum, out byte[] data)
         {
             var result = DecodeBarcodeRow(blacks, row, leftX, rightX, checkWider, out data);
+
+            if (result == DecodeBarcodeRowResult.InvalidSignature)
+            {
+                newCheckSum = 0;
+                return ScanResult.InvalidSignature;
+            }
 
             if (result != DecodeBarcodeRowResult.Ok || data.Count() < MinProgramBarcodeLength)
             {
@@ -983,14 +1047,28 @@ namespace FocalCompiler
         {
             var bitmapData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
             byte* p = (byte*)(void*)bitmapData.Scan0;
-            int stride = bitmapData.Stride;    // stride is offset between horizontal lines in p 
+            int stride = bitmapData.Stride;
+            var pixelFormat = bitmap.PixelFormat;
             byte[,] grays = new byte[bitmap.Width, bitmap.Height];
+            var brightnessPalette = bitmap.Palette;
+            byte[] pal = null;
+
+            if (brightnessPalette != null)
+            {
+                pal = new byte[brightnessPalette.Entries.Length];
+
+                for (int i = 0; i < brightnessPalette.Entries.Length; i++)
+                {
+                    var color = brightnessPalette.Entries[i];
+                    pal[i] = (byte)((color.R + color.G + color.B) / 3);
+                }
+            }
 
             for (int x = 0; x < bitmap.Width; x++)
             {
                 for (int y = 0; y < bitmap.Height; y++)
                 {
-                    grays[x, y] = GetPixelBrightness(p, bitmap.PixelFormat, stride, x, y);
+                    grays[x, y] = GetPixelBrightness(p, pixelFormat, pal, stride, x, y);
                 }
             }
 
@@ -1001,7 +1079,7 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        private unsafe byte GetPixelBrightness(byte* pixelArray, PixelFormat pixelFormat, int stride, int x, int y)
+        private unsafe byte GetPixelBrightness(byte* pixelArray, PixelFormat pixelFormat, byte[] palette, int stride, int x, int y)
         {
             byte brightness = 0;
 
@@ -1009,19 +1087,40 @@ namespace FocalCompiler
             {
                 case PixelFormat.Format1bppIndexed:
                 {
-                    byte pixel = pixelArray[(y * stride) + (x >> 3)];
+                    byte indexes = pixelArray[y * stride + x / 8];
+                    int index = ((indexes << (byte)(x % 8)) & 0x80) != 0 ? 1 : 0;
+                    brightness = palette[index];
+                    break;
+                }
 
-                    if (((pixel << (x % 8)) & 128) != 0)
+                case PixelFormat.Format4bppIndexed:
+                {
+                    byte indexes = pixelArray[y * stride + x / 2];
+                    int index;
+
+                    if ((x % 2) != 0)
                     {
-                        brightness = 255;
+                        index = indexes & 0x0f;
+                    }
+                    else
+                    {
+                        index = indexes >> 4;
                     }
 
+                    brightness = palette[index];
+                    break;
+                }
+
+                case PixelFormat.Format8bppIndexed:
+                {
+                    byte index = pixelArray[y * stride + x];
+                    brightness = palette[index];
                     break;
                 }
 
                 default: // 24bpp RGB, 32bpp formats
                 {
-                    int pixelIndex = (y * stride) + (x * (pixelFormat == PixelFormat.Format24bppRgb ? 3 : 4));
+                    int pixelIndex = y * stride + x * (pixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
                     ushort sum = 0;
 
                     for (int i = pixelIndex; i < pixelIndex + 3; i++)
