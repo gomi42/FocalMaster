@@ -26,6 +26,8 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -59,6 +61,8 @@ namespace FocalMaster
             Title = string.Format("{0} v{1}.{2}", Title, fvi.ProductMajorPart, fvi.ProductMinorPart);
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void BarcodeFilesDragOver(object sender, DragEventArgs e)
         {
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -78,6 +82,8 @@ namespace FocalMaster
             e.Handled = true;
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void BarcodeFilesDrop(object sender, DragEventArgs e)
         {
             string[] newFiles = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -91,6 +97,8 @@ namespace FocalMaster
             files.AddRange(newFiles);
             BarcodeFiles.ItemsSource = files;
         }
+
+        /////////////////////////////////////////////////////////////
 
         private void ButtonAdd(object sender, RoutedEventArgs e)
         {
@@ -108,6 +116,8 @@ namespace FocalMaster
             }
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void ButtonRemove(object sender, RoutedEventArgs e)
         {
             var selectedIndex = BarcodeFiles.SelectedIndex;
@@ -122,10 +132,14 @@ namespace FocalMaster
             BarcodeFiles.ItemsSource = files;
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void ButtonRemoveAll(object sender, RoutedEventArgs e)
         {
             BarcodeFiles.ItemsSource = new List<string>();
         }
+
+        /////////////////////////////////////////////////////////////
 
         private void ButtonUp(object sender, RoutedEventArgs e)
         {
@@ -142,6 +156,8 @@ namespace FocalMaster
             files.Insert(selectedIndex - 1, file);
             BarcodeFiles.ItemsSource = files;
         }
+
+        /////////////////////////////////////////////////////////////
 
         private void ButtonDown(object sender, RoutedEventArgs e)
         {
@@ -168,6 +184,8 @@ namespace FocalMaster
             BarcodeFiles.ItemsSource = files;
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void ButtonSort(object sender, RoutedEventArgs e)
         {
             if (BarcodeFiles.ItemsSource == null)
@@ -186,6 +204,8 @@ namespace FocalMaster
             BarcodeFiles.ItemsSource = files;
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void ButtonLoadFocal(object sender, RoutedEventArgs e)
         {
             var openDialog = new System.Windows.Forms.OpenFileDialog();
@@ -203,6 +223,8 @@ namespace FocalMaster
             }
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void ButtonSaveFocal(object sender, RoutedEventArgs e)
         {
             var saveDialog = new System.Windows.Forms.SaveFileDialog();
@@ -218,6 +240,8 @@ namespace FocalMaster
                 }
             }
         }
+
+        /////////////////////////////////////////////////////////////
 
         private void ButtonCreateBarcode(object sender, RoutedEventArgs e)
         {
@@ -262,6 +286,8 @@ namespace FocalMaster
                 }
         }
 #endif
+
+        /////////////////////////////////////////////////////////////
 
         private void ButtonExportBarcode(object sender, RoutedEventArgs e)
         {
@@ -375,6 +401,8 @@ namespace FocalMaster
             }
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void ButtonExportRaw(object sender, RoutedEventArgs e)
         {
             var saveDialog = new System.Windows.Forms.SaveFileDialog();
@@ -397,6 +425,8 @@ namespace FocalMaster
             }
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void ButtonLoadRaw(object sender, RoutedEventArgs e)
         {
             var openDialog = new System.Windows.Forms.OpenFileDialog();
@@ -417,11 +447,24 @@ namespace FocalMaster
             }
         }
 
+        /////////////////////////////////////////////////////////////
+
         private void ButtonValidate(object sender, RoutedEventArgs e)
         {
+#if DEBUG
+            if ((System.Windows.Forms.Control.ModifierKeys & System.Windows.Forms.Keys.Control) == System.Windows.Forms.Keys.Control
+                && (System.Windows.Forms.Control.ModifierKeys & System.Windows.Forms.Keys.Alt) == System.Windows.Forms.Keys.Alt)
+            {
+                RunAutoTests();
+                return;
+            }
+#endif
+
             var results = ValidateHelper.Validate(Focal.Text);
             ShowErrors.Text = string.Join("\n", results);
         }
+
+        /////////////////////////////////////////////////////////////
 
         private async void ButtonScan(object sender, RoutedEventArgs e)
         {
@@ -438,6 +481,7 @@ namespace FocalMaster
 
             if (BarcodeFiles.ItemsSource == null)
             {
+                ShowErrorsScan.Text = "no files to scan";
                 return;
             }
 
@@ -445,6 +489,7 @@ namespace FocalMaster
 
             if (files.Count == 0)
             {
+                ShowErrorsScan.Text = "no files to scan";
                 return;
             }
 
@@ -453,38 +498,26 @@ namespace FocalMaster
             var scanner = new BarcodeScanner();
             var focal = await Task.Run(() => scanner.Scan(files));
 
+            ShowErrorsScan.Text = ConvertScanResults(scanner.ScannerResults, out bool error);
+
             if (focal != null)
             {
                 Focal.Text = focal;
-                MyTabControl.SelectedIndex = 1;
-                ShowErrors.Text = string.Empty;
             }
             else
             {
                 Focal.Text = string.Empty;
-                ShowErrorsScan.Text = string.Join("\n", scanner.Errors);
+            }
 
-                // the BitmapSource needs to be created in the main thread
-                var errorImageData = scanner.ErrorImageData;
-
-                if (errorImageData != null)
-                {
-                    var results = BitmapSourceConverter.GetBitmapSource(errorImageData.GrayImage, errorImageData.BarcodeAreas, errorImageData.AreaResults);
-                    MyImages.ItemsSource = new List<BitmapSource> { results };
-                }
-
-                MyImages.Visibility = Visibility.Visible;
+            if (!error)
+            {
+                MyTabControl.SelectedIndex = 1;
             }
 
             ShowScanning.Visibility = Visibility.Collapsed;
         }
 
-#if DEBUG
-        private void ButtonScan2(object sender, RoutedEventArgs e)
-        {
-            TestScan();
-        }
-#endif
+        /////////////////////////////////////////////////////////////
 
         private async void TestScan()
         {
@@ -500,7 +533,7 @@ namespace FocalMaster
 
             ShowScanning.Visibility = Visibility.Visible;
 
-            List<ErrorImageData> results;
+            List<ImageResults> results;
             var scanner = new BarcodeScanner();
 
 #if DEBUG
@@ -534,11 +567,123 @@ namespace FocalMaster
 
             MyImages.Visibility = Visibility.Visible;
             MyTabControl.SelectedIndex = 2;
-            ShowErrorsScan.Text = string.Join("\n", scanner.Errors);
+            ShowErrorsScan.Text = ConvertScanResults(scanner.ScannerResults, out _);
 
             MyImages.ItemsSource = bitmaps;
 
             ShowScanning.Visibility = Visibility.Collapsed;
+        }
+
+#if DEBUG
+        private async void RunAutoTests()
+        {
+            var results = new StringBuilder();
+            List<string> files = new List<string>();
+
+            var location = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            location = location.Remove(location.Length - 9);
+
+            using (StreamReader reader = File.OpenText(Path.Combine(location, "Tests.txt")))
+            {
+                string line;
+
+                do
+                {
+                    files.Clear();
+                    line = reader.ReadLine();
+
+                    do
+                    {
+                        files.Add(line);
+                        line = reader.ReadLine();
+                    }
+                    while (line != null && line != string.Empty);
+
+                    await DoTest(files, results);
+                }
+                while (line != null);
+            }
+
+            results.AppendLine("ready");
+            Focal.Text = results.ToString();
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private async Task DoTest(List<string> files, StringBuilder results)
+        {
+            MyTabControl.SelectedIndex = 1;
+
+            results.AppendLine(Path.GetFileName(files[0]));
+            Focal.Text = results.ToString();
+
+            var scanner = new BarcodeScanner();
+            var focal = await Task.Run(() => scanner.Scan(files));
+
+            results.Append(ConvertScanResults(scanner.ScannerResults, out bool error));
+
+            if (focal != null)
+            {
+                var compiler = new Compiler();
+
+                string[] lines = focal.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+                int sourceLineNr = 1;
+
+                foreach (var line in lines)
+                {
+                    if (compiler.Compile(line, out byte[][] outCodes, out string ErrorMsg))
+                    {
+                        results.AppendLine(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, sourceLineNr, line));
+                    }
+
+                    sourceLineNr++;
+                }
+            }
+
+            Focal.Text = results.ToString();
+        }
+#endif
+
+        /////////////////////////////////////////////////////////////
+
+        private string ConvertScanResults(List<ScannerResult> results, out bool error)
+        {
+            var sb = new StringBuilder();
+            error = false;
+
+            foreach (ScannerResult result in results)
+            {
+                switch (result.ScanResult)
+                {
+                    case ScanerResultId.NoBarcodeFound:
+                        sb.AppendLine($"Info: No barcodes found in \"{result.Filename}\"");
+                        break;
+
+                    case ScanerResultId.NoProgramCode:
+                        sb.AppendLine($"Info: No programm barcodes found in \"{result.Filename}\"");
+                        break;
+
+                    case ScanerResultId.InvalidSignature:
+                        sb.AppendLine($"Warning: Invalid barcode signature found in \"{result.Filename}\"");
+                        break;
+
+                    case ScanerResultId.CheckSumError:
+                        sb.AppendLine($"Error: Checksum error in \"{result.Filename}\"");
+                        error = true;
+                        break;
+
+                    case ScanerResultId.ProgramCode:
+                        sb.AppendLine($"Info: Barcodes successfully read in \"{result.Filename}\"");
+                        break;
+
+                    case ScanerResultId.CannotOpenFile:
+                        sb.AppendLine($"Error: Cannot open file \"{result.Filename}\"");
+                        error = true;
+                        break;
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

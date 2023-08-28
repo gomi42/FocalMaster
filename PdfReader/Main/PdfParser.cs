@@ -1,4 +1,3 @@
-#define TEST
 //
 // Author:
 //   Michael Göricke
@@ -26,7 +25,6 @@ using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using PdfSharp.Pdf;
-using PdfSharp.Pdf.Advanced;
 using PdfSharp.Pdf.Content;
 using PdfSharp.Pdf.IO;
 using ShapeConverter.BusinessLogic.Generators;
@@ -41,7 +39,7 @@ namespace ShapeConverter.Parser.Pdf
     internal class PdfParser
     {
         /// <summary>
-        /// Parse the given file and convert it to a list of graphic paths
+        /// Parse the given file and convert it to a list of bitmaps
         /// </summary>
         public IEnumerable<Bitmap> Parse(string filename)
         {
@@ -102,7 +100,7 @@ namespace ShapeConverter.Parser.Pdf
 
             void CalcBounds(DrawingVisual child)
             {
-                var bounds = ((DrawingVisual)child).ContentBounds;
+                var bounds = child.ContentBounds;
 
                 if (!bounds.IsEmpty)
                 {
