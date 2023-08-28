@@ -55,7 +55,7 @@ namespace FocalMaster
             BarcodeFiles.ItemsSource = list;
             
 
-            System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            Assembly assembly = Assembly.GetExecutingAssembly();
             FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
 
             Title = string.Format("{0} v{1}.{2}", Title, fvi.ProductMajorPart, fvi.ProductMinorPart);
@@ -96,6 +96,7 @@ namespace FocalMaster
             var files = BarcodeFiles.ItemsSource.Cast<string>().ToList();
             files.AddRange(newFiles);
             BarcodeFiles.ItemsSource = files;
+            ShowErrorsScan.Text = string.Empty;
         }
 
         /////////////////////////////////////////////////////////////
@@ -114,6 +115,8 @@ namespace FocalMaster
                 files.Add(openDialog.FileName);
                 BarcodeFiles.ItemsSource = files;
             }
+
+            ShowErrorsScan.Text = string.Empty;
         }
 
         /////////////////////////////////////////////////////////////
@@ -130,6 +133,7 @@ namespace FocalMaster
             var files = BarcodeFiles.ItemsSource.Cast<string>().ToList();
             files.RemoveAt(selectedIndex);
             BarcodeFiles.ItemsSource = files;
+            ShowErrorsScan.Text = string.Empty;
         }
 
         /////////////////////////////////////////////////////////////
@@ -137,6 +141,7 @@ namespace FocalMaster
         private void ButtonRemoveAll(object sender, RoutedEventArgs e)
         {
             BarcodeFiles.ItemsSource = new List<string>();
+            ShowErrorsScan.Text = string.Empty;
         }
 
         /////////////////////////////////////////////////////////////
@@ -678,6 +683,11 @@ namespace FocalMaster
 
                     case ScanerResultId.CannotOpenFile:
                         sb.AppendLine($"Error: Cannot open file \"{result.Filename}\"");
+                        error = true;
+                        break;
+
+                    case ScanerResultId.NoEndDected:
+                        sb.AppendLine($"Warning: No END detected");
                         error = true;
                         break;
                 }

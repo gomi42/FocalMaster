@@ -92,7 +92,7 @@ namespace FocalDecompiler
 
         /////////////////////////////////////////////////////////////
 
-        public void Decompile(List<byte> code, out string focal)
+        public bool Decompile(List<byte> code, out string focal)
         {
             MemoryStream inputStream;
             StringWriter outputStream;
@@ -104,7 +104,7 @@ namespace FocalDecompiler
             catch
             {
                 focal = null;
-                return;
+                return false;
             }
 
             try
@@ -114,15 +114,17 @@ namespace FocalDecompiler
             catch
             {
                 focal = null;
-                return;
+                return false;
             }
 
-            Decompile(inputStream, outputStream);
+            var endDetected = Decompile(inputStream, outputStream);
 
             focal = outputStream.ToString();
 
             inputStream.Close();
             outputStream.Close();
+
+            return endDetected;
         }
 
         /////////////////////////////////////////////////////////////
@@ -195,12 +197,13 @@ namespace FocalDecompiler
 
         /////////////////////////////////////////////////////////////
 
-        private void Decompile(Stream inputStream, TextWriter outputStream)
+        private bool Decompile(Stream inputStream, TextWriter outputStream)
         {
             InitParameter();
 
             ///////////////////////////////
 
+            bool endDetected = false;
             int byteFromFile;
             string mnemonic;
             bool haveNextByte = false;
@@ -381,6 +384,8 @@ namespace FocalDecompiler
                             }
                             else
                             {
+                                endDetected = true;
+
                                 if ((len & 0x20) != 0)
                                 {
                                     outputStream.WriteLine(".END.");
@@ -496,6 +501,8 @@ namespace FocalDecompiler
 
             inputStream.Close();
             outputStream.Close();
+
+            return endDetected;
         }
     }
 }
