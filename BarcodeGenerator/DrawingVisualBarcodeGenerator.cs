@@ -102,7 +102,6 @@ namespace FocalCompiler
 
         protected override void EndBarcodeRow()
         {
-            drawingContext.Close();
             currentY += BarHeight + BarGap;
         }
 
