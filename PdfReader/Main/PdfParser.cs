@@ -33,6 +33,22 @@ using ShapeConverter.Helper;
 
 namespace ShapeConverter.Parser.Pdf
 {
+    internal class PdfBitmapInfo
+    {
+        public PdfBitmapInfo(Bitmap bitmap, int pageNumber, bool isGraphic, int imageNumber)
+        {
+            Bitmap = bitmap;
+            PageNumber = pageNumber;
+            IsGraphic = isGraphic;
+            ImageNumber = imageNumber;
+        }
+
+        public Bitmap Bitmap { get; }
+        public int PageNumber { get; }
+        public bool IsGraphic { get; }
+        public int ImageNumber { get; }
+    }
+
     /// <summary>
     /// The PDF parser
     /// </summary>
@@ -41,10 +57,11 @@ namespace ShapeConverter.Parser.Pdf
         /// <summary>
         /// Parse the given file and convert it to a list of bitmaps
         /// </summary>
-        public IEnumerable<Bitmap> Parse(string filename)
+        public IEnumerable<PdfBitmapInfo> Parse(string filename)
         {
             PdfDocument inputDocument = PdfReader.Open(filename);
             var invisibleGroups = GetVisibleGroups(inputDocument.OCPropperties);
+            int pageNumber = 1;
 
             foreach (PdfPage page in inputDocument.Pages)
             {
@@ -53,9 +70,12 @@ namespace ShapeConverter.Parser.Pdf
 
                 if (images.Count > 0)
                 {
+                    int imageNumber = 1;
+
                     foreach (var image in images)
                     {
-                        yield return PdfDictionaryExtensions.ToImage(image);
+                        yield return new PdfBitmapInfo(PdfDictionaryExtensions.ToImage(image), pageNumber, false, imageNumber);
+                        imageNumber++;
                     }
                 }
                 else
@@ -83,8 +103,10 @@ namespace ShapeConverter.Parser.Pdf
                     encoder.Frames.Add(BitmapFrame.Create(targetBitmap));
                     encoder.Save(stream);
 
-                    yield return new Bitmap(stream);
+                    yield return new PdfBitmapInfo(new Bitmap(stream), pageNumber, true, 1);
                 }
+
+                pageNumber++;
             }
 
             CommonHelper.CleanUpTempDir();

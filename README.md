@@ -120,7 +120,7 @@ FocalMaster analyzes all images, the process does not stop at the first occurenc
 ![barcode view](Images/Error.jpg)
 
 
-As shown below the command "CF 29" is recognized as a barcode but ignored because its not a program barcode. Usually the FocalMaster is able to ignore none-program barcodes. But there might be cases where such barcodes are wrongly tried to read as program barcodes - without success. It can help to create a new image out of existing one but remove the identified none-program barcodes and try again.
+As shown below the command "CF 29" is recognized as a barcode but ignored because its not a program barcode. In case FocalMaster cannot identify any barcode the output just shows the result with the maximum box size (see below).
 
 ![barcode view](Images/Debug.jpg)
 

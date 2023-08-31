@@ -53,7 +53,7 @@ namespace FocalMaster
             list.Add(@"D:\Rechner\Taschenrechner\HP-41\Wand\Manual\34.jpg");
 #endif
             BarcodeFiles.ItemsSource = list;
-            
+
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
@@ -252,7 +252,7 @@ namespace FocalMaster
         {
             MyImages.Visibility = Visibility.Collapsed;
             MyImages.ItemsSource = null;
-            
+
             var generator = new DrawingVisualBarcodeGenerator();
 
             if (generator.GenerateVisual(Focal.Text, out DrawingVisual visual))
@@ -442,7 +442,7 @@ namespace FocalMaster
             if (result == System.Windows.Forms.DialogResult.OK)
             {
                 var decompiler = new Decompiler();
-                decompiler.Decompile(openDialog.FileName, out string focal);
+                decompiler.Decompile(openDialog.FileName, out string focal, out bool _);
                 Focal.Text = focal;
                 ShowErrors.Text = string.Empty;
             }
@@ -500,19 +500,36 @@ namespace FocalMaster
 
             ShowScanning.Visibility = Visibility.Visible;
 
+            byte[] code = null;
+            List<ScannerResult> scannerResults = null;
             var scanner = new BarcodeScanner();
-            var focal = await Task.Run(() => scanner.Scan(files));
 
-            ShowErrorsScan.Text = ConvertScanResults(scanner.ScannerResults, out bool error);
+            var success = await Task.Run(() => scanner.Scan(files, out code, out scannerResults));
 
-            if (focal != null)
+            var scanResults = ConvertScanResults(scannerResults, out bool error);
+
+            if (success && code != null && code.Length > 0)
             {
-                Focal.Text = focal;
+                var decomp = new Decompiler();
+                decomp.Decompile(code, out string focal, out bool endDetected);
+
+                if (focal != null)
+                {
+                    Focal.Text = focal;
+                }
+                else
+                {
+                    Focal.Text = string.Empty;
+                }
+
+                if (!endDetected)
+                {
+                    scanResults.AppendLine("Warning: No END detected");
+                }
             }
-            else
-            {
-                Focal.Text = string.Empty;
-            }
+
+            ShowErrorsScan.Text = scanResults.ToString();
+
 
             if (!error)
             {
@@ -532,29 +549,30 @@ namespace FocalMaster
             {
                 MyImages.Visibility = Visibility.Collapsed;
                 MyImages.ItemsSource = null;
-                
+
                 return;
             }
 
             ShowScanning.Visibility = Visibility.Visible;
 
-            List<ImageResults> results;
+            List<ImageResult> imageResults = null;
+            List<ScannerResult> scannerResults = null;
             var scanner = new BarcodeScanner();
 
 #if DEBUG
             if ((System.Windows.Forms.Control.ModifierKeys & System.Windows.Forms.Keys.Shift) == System.Windows.Forms.Keys.Shift)
             {
-                results = await Task.Run(() => scanner.ScanDebugBoxes(files));
+                await Task.Run(() => scanner.ScanDebugBoxes(files, out imageResults));
             }
             else
 #endif
             {
-                results = await Task.Run(() => scanner.ScanDebug(files));
+                await Task.Run(() => scanner.ScanDebug(files, out imageResults, out scannerResults));
             }
 
             var bitmaps = new List<BitmapSource>();
 
-            foreach (var imageData in results)
+            foreach (var imageData in imageResults)
             {
                 BitmapSource bitmap;
 
@@ -572,18 +590,29 @@ namespace FocalMaster
 
             MyImages.Visibility = Visibility.Visible;
             MyTabControl.SelectedIndex = 2;
-            ShowErrorsScan.Text = ConvertScanResults(scanner.ScannerResults, out _);
+
+            if (scannerResults != null)
+            {
+                ShowErrorsScan.Text = ConvertScanResults(scannerResults, out _).ToString();
+            }
+            else
+            {
+                ShowErrorsScan.Text = string.Empty;
+            }
 
             MyImages.ItemsSource = bitmaps;
 
             ShowScanning.Visibility = Visibility.Collapsed;
         }
 
+        /////////////////////////////////////////////////////////////
+
 #if DEBUG
         private async void RunAutoTests()
         {
+            int numErrors = 0;
             var results = new StringBuilder();
-            List<string> files = new List<string>();
+            List<string> entries = new List<string>();
 
             var location = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             location = location.Remove(location.Length - 9);
@@ -592,51 +621,88 @@ namespace FocalMaster
             {
                 string line;
 
-                do
+                void ReadLines()
                 {
-                    files.Clear();
+                    entries.Clear();
                     line = reader.ReadLine();
 
                     do
                     {
-                        files.Add(line);
+                        entries.Add(line);
                         line = reader.ReadLine();
                     }
                     while (line != null && line != string.Empty);
-
-                    await DoTest(files, results);
                 }
-                while (line != null);
+
+                ReadLines();
+                DoCreateBarcodeTest(entries, results);
+
+                while (line != null)
+                {
+                    ReadLines();
+                    var error = await DoScanTest(entries, results);
+
+                    if (error)
+                    {
+                        numErrors++;
+                    }
+                }
             }
 
-            results.AppendLine("ready");
+            results.AppendLine($"ready with {numErrors} error(s)");
             Focal.Text = results.ToString();
         }
 
         /////////////////////////////////////////////////////////////
 
-        private async Task DoTest(List<string> files, StringBuilder results)
+        private void DoCreateBarcodeTest(List<string> statements, StringBuilder results)
+        {
+            results.AppendLine("DrawingVisualBarcodeGenerator");
+            var generator = new DrawingVisualBarcodeGenerator();
+            var focal = string.Join("\r\n", statements);
+
+            if (!generator.GenerateVisual(focal, out _))
+            {
+                results.Append(generator.Errors.ToString());
+            }
+
+            Focal.Text = results.ToString();
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private async Task<bool> DoScanTest(List<string> files, StringBuilder results)
         {
             MyTabControl.SelectedIndex = 1;
 
             results.AppendLine(Path.GetFileName(files[0]));
             Focal.Text = results.ToString();
 
+            byte[] code = null;
+            List<ScannerResult> scannerResults = null;
             var scanner = new BarcodeScanner();
-            var focal = await Task.Run(() => scanner.Scan(files));
 
-            results.Append(ConvertScanResults(scanner.ScannerResults, out bool error));
+            var success = await Task.Run(() => scanner.Scan(files, out code, out scannerResults));
 
-            if (focal != null)
+            results.Append(ConvertScanResults(scannerResults, out bool error));
+
+            if (success && code != null && code.Length > 0)
             {
-                var compiler = new Compiler();
+                var decomp = new Decompiler();
+                decomp.Decompile(code, out string focal, out bool endDetected);
 
+                if (!endDetected)
+                {
+                    results.AppendLine("Warning: No END detected");
+                }
+
+                var compiler = new Compiler();
                 string[] lines = focal.Split(new string[] { "\r\n" }, StringSplitOptions.None);
                 int sourceLineNr = 1;
 
                 foreach (var line in lines)
                 {
-                    if (compiler.Compile(line, out byte[][] outCodes, out string ErrorMsg))
+                    if (compiler.Compile(line, out _, out string ErrorMsg))
                     {
                         results.AppendLine(string.Format("{0}, line {1}, \"{2}\"", ErrorMsg, sourceLineNr, line));
                     }
@@ -646,54 +712,69 @@ namespace FocalMaster
             }
 
             Focal.Text = results.ToString();
+
+            return error;
         }
 #endif
 
         /////////////////////////////////////////////////////////////
 
-        private string ConvertScanResults(List<ScannerResult> results, out bool error)
+        private StringBuilder ConvertScanResults(List<ScannerResult> results, out bool error)
         {
             var sb = new StringBuilder();
             error = false;
 
             foreach (ScannerResult result in results)
             {
+                string fileInfo;
+
+                if (result.PageNumber > 0)
+                {
+                    if (result.IsGraphic)
+                    {
+                        fileInfo = $"\"{result.Filename}\", page {result.PageNumber}, graphic";
+                    }
+                    else
+                    {
+                        fileInfo = $"\"{result.Filename}\", page {result.PageNumber}, image {result.ImageNumber}";
+                    }
+                }
+                else
+                {
+                    fileInfo = result.Filename;
+                }
+
                 switch (result.ScanResult)
                 {
                     case ScanerResultId.NoBarcodeFound:
-                        sb.AppendLine($"Info: No barcodes found in \"{result.Filename}\"");
+                        sb.AppendLine($"Info: No barcodes found in {fileInfo}");
                         break;
 
                     case ScanerResultId.NoProgramCode:
-                        sb.AppendLine($"Info: No programm barcodes found in \"{result.Filename}\"");
+                        sb.AppendLine($"Info: No programm barcodes found in {fileInfo}");
                         break;
 
                     case ScanerResultId.InvalidSignature:
-                        sb.AppendLine($"Warning: Invalid barcode signature found in \"{result.Filename}\"");
+                        sb.AppendLine($"Warning: Invalid barcode signature found in {fileInfo}");
                         break;
 
                     case ScanerResultId.CheckSumError:
-                        sb.AppendLine($"Error: Checksum error in \"{result.Filename}\"");
+                        sb.AppendLine($"Error: Checksum error in {fileInfo}");
                         error = true;
                         break;
 
                     case ScanerResultId.ProgramCode:
-                        sb.AppendLine($"Info: Barcodes successfully read in \"{result.Filename}\"");
+                        sb.AppendLine($"Info: Barcodes successfully read in {fileInfo}");
                         break;
 
                     case ScanerResultId.CannotOpenFile:
-                        sb.AppendLine($"Error: Cannot open file \"{result.Filename}\"");
-                        error = true;
-                        break;
-
-                    case ScanerResultId.NoEndDected:
-                        sb.AppendLine($"Warning: No END detected");
+                        sb.AppendLine($"Error: Cannot open file {fileInfo}");
                         error = true;
                         break;
                 }
             }
 
-            return sb.ToString();
+            return sb;
         }
     }
 }

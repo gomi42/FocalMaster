@@ -25,7 +25,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using FocalDecompiler;
 using ShapeConverter.Parser.Pdf;
 
 namespace FocalCompiler
@@ -39,26 +38,27 @@ namespace FocalCompiler
         InvalidSignature,
         CheckSumError,
         ProgramCode,
-        CannotOpenFile,
-        NoEndDected
+        CannotOpenFile
     }
 
     /////////////////////////////////////////////////////////////
 
     internal class ScannerResult
     {
-        public ScannerResult()
-        {
-        }
-
-        public ScannerResult(ScanerResultId scanResult, string filename)
+        public ScannerResult(ScanerResultId scanResult, string filename, int pageNumber, bool isGraphic, int imageNumber)
         {
             ScanResult = scanResult;
             Filename = filename;
+            PageNumber = pageNumber;
+            IsGraphic = isGraphic;
+            ImageNumber = imageNumber;
         }
 
-        public ScanerResultId ScanResult;
-        public string Filename;
+        public ScanerResultId ScanResult { get; }
+        public string Filename { get; }
+        public int PageNumber { get; }
+        public bool IsGraphic { get; }
+        public int ImageNumber { get; }
     }
 
     /////////////////////////////////////////////////////////////
@@ -83,13 +83,22 @@ namespace FocalCompiler
 
     /////////////////////////////////////////////////////////////
 
-    internal class ImageResults
+    internal class ImageResult
     {
-        public string Filename;
-        public byte[,] GrayImage;
-        public EdgeOrientation[,] Edges;
-        public List<Rectangle> BarcodeAreas;
-        public List<ScanResult> AreaResults;
+        public ImageResult(string filename, byte[,] grayImage, EdgeOrientation[,] edges, List<Rectangle> barcodeAreas, List<ScanResult> areaResults)
+        {
+            Filename = filename;
+            GrayImage = grayImage;
+            Edges = edges;
+            BarcodeAreas = barcodeAreas;
+            AreaResults = areaResults;
+        }
+
+        public string Filename { get; }
+        public byte[,] GrayImage { get; }
+        public EdgeOrientation[,] Edges { get; }
+        public List<Rectangle> BarcodeAreas { get; }
+        public List<ScanResult> AreaResults { get; }
     }
 
     /////////////////////////////////////////////////////////////
@@ -106,11 +115,27 @@ namespace FocalCompiler
             InvalidSignature
         }
 
+        /////////////////////////////////////////////////////////////
+
         struct BitmapInfo
         {
-            public Bitmap Bitmap;
-            public string Filename;
+            public BitmapInfo(Bitmap bitmap, string filename, int pageNumber, bool isGraphic, int imageNumber)
+            {
+                Bitmap = bitmap;
+                Filename = filename;
+                PageNumber = pageNumber;
+                IsGraphic = isGraphic;
+                ImageNumber = imageNumber;
+            }
+
+            public Bitmap Bitmap { get; }
+            public string Filename { get; }
+            public int PageNumber { get; }
+            public bool IsGraphic { get; }
+            public int ImageNumber { get; }
         }
+
+        /////////////////////////////////////////////////////////////
 
         private const int ProgramBarcodeHeaderLength = 3;
         private const int MinProgramBarcodeLength = ProgramBarcodeHeaderLength + 1;
@@ -120,57 +145,51 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        public List<ScannerResult> ScannerResults { get; private set; }
-
-        /////////////////////////////////////////////////////////////
-
-        public string Scan(List<string> files)
+        public bool Scan(List<string> files, out byte[] code, out List<ScannerResult> scannerResults)
         {
-            ScannerResults = new List<ScannerResult>();
+            scannerResults = new List<ScannerResult>();
             var programCode = new List<byte>();
             int lastCheckSum = 0;
             int currentRow = 0;
-            string focal = null;
 
             var bitmapInfos = GetBitmaps(files);
 
             foreach (var bitmapInfo in bitmapInfos)
             {
-                ScanResult fileScanResult = ScanOneBitmap(bitmapInfo, ref lastCheckSum, ref currentRow, out List<byte> code, out _);
-                ScannerResults.Add(GetScannerResult(fileScanResult, bitmapInfo.Filename));
+                if (bitmapInfo.Bitmap == null)
+                {
+                    scannerResults.Add(new ScannerResult(ScanerResultId.CannotOpenFile, bitmapInfo.Filename, 0, false, 0));
+                    code = null;
+                    return false;
+                }
+
+                ScanResult fileScanResult = ScanOneBitmap(bitmapInfo, ref lastCheckSum, ref currentRow, out List<byte> bitmapCode, out _);
+                scannerResults.Add(GetScannerResult(fileScanResult, bitmapInfo));
                 bitmapInfo.Bitmap.Dispose();
 
                 switch (fileScanResult)
                 {
                     case ScanResult.CheckSumError:
-                        return null;
+                        code = null;
+                        return false;
 
                     case ScanResult.ProgramCode:
-                        programCode.AddRange(code);
+                        programCode.AddRange(bitmapCode);
                         break;
                 }
             }
 
-            if (programCode.Count > 0)
-            {
-                var decomp = new Decompiler();
-                var endDetected = decomp.Decompile(programCode, out focal);
+            code = programCode.ToArray();
 
-                if (!endDetected)
-                {
-                    ScannerResults.Add(new ScannerResult(ScanerResultId.NoEndDected, ""));
-                }
-            }
-
-            return focal;
+            return true;
         }
 
         /////////////////////////////////////////////////////////////
 
-        public List<ImageResults> ScanDebug(List<string> files)
+        public void ScanDebug(List<string> files, out List<ImageResult> imageResults, out List<ScannerResult> scannerResults)
         {
-            ScannerResults = new List<ScannerResult>();
-            var imageResults = new List<ImageResults>();
+            imageResults = new List<ImageResult>();
+            scannerResults = new List<ScannerResult>();
             int lastCheckSum = 0;
             int currentRow = 0;
 
@@ -178,18 +197,22 @@ namespace FocalCompiler
 
             foreach (var bitmapInfo in bitmapInfos)
             {
-                ScanResult fileScanResult = ScanOneBitmap(bitmapInfo, ref lastCheckSum, ref currentRow, out _, out ImageResults imageResult);
-                ScannerResults.Add(GetScannerResult(fileScanResult, bitmapInfo.Filename));
+                if (bitmapInfo.Bitmap == null)
+                {
+                    scannerResults.Add(new ScannerResult(ScanerResultId.CannotOpenFile, bitmapInfo.Filename, 0, false, 0));
+                    continue;
+                }
+
+                ScanResult fileScanResult = ScanOneBitmap(bitmapInfo, ref lastCheckSum, ref currentRow, out _, out ImageResult imageResult);
+                scannerResults.Add(GetScannerResult(fileScanResult, bitmapInfo));
                 imageResults.Add(imageResult);
                 bitmapInfo.Bitmap.Dispose();
             }
-
-            return imageResults;
         }
 
         /////////////////////////////////////////////////////////////
 
-        private ScanResult ScanOneBitmap(BitmapInfo bitmapInfo, ref int lastCheckSum, ref int currentRow, out List<byte> code, out ImageResults imageResult)
+        private ScanResult ScanOneBitmap(BitmapInfo bitmapInfo, ref int lastCheckSum, ref int currentRow, out List<byte> code, out ImageResult imageResult)
         {
             var grayImage = CreateGrayScale(bitmapInfo.Bitmap);
             var binaryImage = Binarize(grayImage);
@@ -217,24 +240,23 @@ namespace FocalCompiler
             }
             while (boxSize <= MaxBoxSize && fileScanResult != ScanResult.ProgramCode);
 
-            imageResult = new ImageResults { Filename = bitmapInfo.Filename, GrayImage = grayImage, BarcodeAreas = barcodeAreas, AreaResults = areaResults };
+            imageResult = new ImageResult(bitmapInfo.Filename, grayImage, null, barcodeAreas, areaResults);
 
             return fileScanResult;
         }
 
         /////////////////////////////////////////////////////////////
 
-        public List<ImageResults> ScanDebugBoxes(List<string> files)
+        public void ScanDebugBoxes(List<string> files, out List<ImageResult> imageResults)
         {
-            ScannerResults = new List<ScannerResult>();
-            var results = new List<ImageResults>();
+            imageResults = new List<ImageResult>();
 
             var file = files[0];
 
             var bitmaps = GetBitmaps(files);
-            var enu = bitmaps.GetEnumerator();
-            enu.MoveNext();
-            BitmapInfo bitmapInfo = enu.Current;
+            var bitmapEnumerator = bitmaps.GetEnumerator();
+            bitmapEnumerator.MoveNext();
+            BitmapInfo bitmapInfo = bitmapEnumerator.Current;
 
             var grayImage = CreateGrayScale(bitmapInfo.Bitmap);
             var binaryImage = Binarize(grayImage);
@@ -244,22 +266,20 @@ namespace FocalCompiler
             var boxes = FindBoxes(edges, boxSize);
             var areas = CombineBoxesToAreas(boxes, boxSize);
 
-            var imageData = new ImageResults { Filename = file, GrayImage = binaryImage };
-            results.Add(imageData);
+            var imageData = new ImageResult(file, binaryImage, null, null, null);
+            imageResults.Add(imageData);
 
-            imageData = new ImageResults { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
-            results.Add(imageData);
+            imageData = new ImageResult(file, binaryImage, null, areas, null);
+            imageResults.Add(imageData);
 
-            areas = CreateBoxAreas(boxes, boxSize);
-            imageData = new ImageResults { Filename = file, GrayImage = binaryImage, BarcodeAreas = areas, AreaResults = null };
-            results.Add(imageData);
+            var boxAreas = CreateBoxAreas(boxes, boxSize);
+            imageData = new ImageResult(file, binaryImage, null, boxAreas, null);
+            imageResults.Add(imageData);
 
-            imageData = new ImageResults { Filename = file, Edges = edges, BarcodeAreas = null, AreaResults = null };
-            results.Add(imageData);
+            imageData = new ImageResult(file, null, edges, null, null);
+            imageResults.Add(imageData);
 
             bitmapInfo.Bitmap.Dispose();
-
-            return results;
         }
 
         /////////////////////////////////////////////////////////////
@@ -272,26 +292,27 @@ namespace FocalCompiler
 
                 if (Path.GetExtension(file).ToLower() == ".pdf")
                 {
-                    IEnumerable<Bitmap> bitmaps = null;
+                    IEnumerable<PdfBitmapInfo> pdfBitmaps = null;
 
                     try
                     {
                         var pdfParser = new PdfParser();
-                        bitmaps = pdfParser.Parse(file);
+                        pdfBitmaps = pdfParser.Parse(file);
                     }
                     catch
                     {
-                        ScannerResults.Add(new ScannerResult(ScanerResultId.CannotOpenFile, filename));
                     }
 
-                    if (bitmaps != null)
+                    if (pdfBitmaps != null)
                     {
-                        int i = 1;
-
-                        foreach (var pdfBitmap in bitmaps)
+                        foreach (var pdfBitmapInfo in pdfBitmaps)
                         {
-                            yield return new BitmapInfo { Bitmap = pdfBitmap, Filename = $"{filename}, page/image {i++}" };
+                            yield return new BitmapInfo(pdfBitmapInfo.Bitmap, filename, pdfBitmapInfo.PageNumber, pdfBitmapInfo.IsGraphic, pdfBitmapInfo.ImageNumber);
                         }
+                    }
+                    else
+                    {
+                        yield return new BitmapInfo(null, filename, 0, false, 0);
                     }
                 }
                 else
@@ -304,48 +325,37 @@ namespace FocalCompiler
                     }
                     catch
                     {
-                        ScannerResults.Add(new ScannerResult(ScanerResultId.CannotOpenFile, filename));
                     }
 
-                    if (imageBitmap != null)
-                    {
-                        yield return new BitmapInfo { Bitmap = imageBitmap, Filename = $"{filename}" };
-                    }
+                    yield return new BitmapInfo(imageBitmap, filename, 0, false, 0);
                 }
             }
         }
 
         /////////////////////////////////////////////////////////////
 
-        private ScannerResult GetScannerResult(ScanResult scanResult, string filename)
+        private ScannerResult GetScannerResult(ScanResult scanResult, BitmapInfo bitmapInfo)
         {
-            ScannerResult result = new ScannerResult();
-            result.Filename = filename;
-
             switch (scanResult)
             {
                 case ScanResult.NoBarcodeFound:
-                    result.ScanResult = ScanerResultId.NoBarcodeFound;
-                    break;
+                    return new ScannerResult(ScanerResultId.NoBarcodeFound, bitmapInfo.Filename, bitmapInfo.PageNumber, bitmapInfo.IsGraphic, bitmapInfo.ImageNumber);
 
                 case ScanResult.NoProgramCode:
-                    result.ScanResult = ScanerResultId.NoProgramCode;
-                    break;
+                    return new ScannerResult(ScanerResultId.NoProgramCode, bitmapInfo.Filename, bitmapInfo.PageNumber, bitmapInfo.IsGraphic, bitmapInfo.ImageNumber);
 
                 case ScanResult.InvalidSignature:
-                    result.ScanResult = ScanerResultId.InvalidSignature;
-                    break;
+                    return new ScannerResult(ScanerResultId.InvalidSignature, bitmapInfo.Filename, bitmapInfo.PageNumber, bitmapInfo.IsGraphic, bitmapInfo.ImageNumber);
 
                 case ScanResult.CheckSumError:
-                    result.ScanResult = ScanerResultId.CheckSumError;
-                    break;
+                    return new ScannerResult(ScanerResultId.CheckSumError, bitmapInfo.Filename, bitmapInfo.PageNumber, bitmapInfo.IsGraphic, bitmapInfo.ImageNumber);
 
                 case ScanResult.ProgramCode:
-                    result.ScanResult = ScanerResultId.ProgramCode;
-                    break;
-            }
+                    return new ScannerResult(ScanerResultId.ProgramCode, bitmapInfo.Filename, bitmapInfo.PageNumber, bitmapInfo.IsGraphic, bitmapInfo.ImageNumber);
 
-            return result;
+                default:
+                    throw new ArgumentException("Unknown scan result");
+            }
         }
 
         /////////////////////////////////////////////////////////////

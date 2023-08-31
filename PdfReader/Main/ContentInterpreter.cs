@@ -657,33 +657,8 @@ namespace ShapeConverter.BusinessLogic.Parser.Pdf.Main
             var interpreter = new ContentInterpreter();
             var (group, _) = interpreter.Run(xobjectDict, sequence, cloneCurrentGraphicsState, null);
 
-            // do some optimizations that the post-processor cannot do
-
-            if (group.Children.Count == 1 && group.Clip == null && !DoubleUtilities.IsEqual(currentGraphicsState.FillAlpha.Object, 1.0))
-            {
-                // the layer has only 1 child and the layer has an opacity set other than 1 -> 
-                // recreate the layer but with the layer opacity set which gets "added" to each single object
-                // on that layer. Because there is only 1 object the result is the same as if the object sits
-                // on a semi transparent layer. That saves a group for a single object.
-
-                cloneCurrentGraphicsState = currentGraphicsState.Clone();
-
-                if (matrixArray != null)
-                {
-                    cloneCurrentGraphicsState.TransformationMatrix *= matrix;
-                }
-
-                cloneCurrentGraphicsState.FillAlpha.Layer = currentGraphicsState.FillAlpha.Object;
-                cloneCurrentGraphicsState.StrokeAlpha.Layer = currentGraphicsState.StrokeAlpha.Object;
-
-                (group, _) = interpreter.Run(xobjectDict, sequence, cloneCurrentGraphicsState, null);
-                graphicGroup.Children.Add(group.Children[0]);
-            }
-            else
-            {
-                group.Opacity = currentGraphicsState.FillAlpha.Object;
-                graphicGroup.Children.Add(group);
-            }
+            group.Opacity = currentGraphicsState.FillAlpha.Object;
+            graphicGroup.Children.Add(group);
         }
 
         /// <summary>
