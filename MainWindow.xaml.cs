@@ -728,46 +728,50 @@ namespace FocalMaster
             {
                 string fileInfo;
 
-                if (result.PageNumber > 0)
+                switch (result)
                 {
-                    if (result.IsGraphic)
-                    {
-                        fileInfo = $"\"{result.Filename}\", page {result.PageNumber}, graphic";
-                    }
-                    else
-                    {
-                        fileInfo = $"\"{result.Filename}\", page {result.PageNumber}, image {result.ImageNumber}";
-                    }
-                }
-                else
-                {
-                    fileInfo = result.Filename;
+                    case ScannerResultImage image:
+                    case ScannerResultError error2:
+                        fileInfo = $"\"{result.Filename}\"";
+                        break;
+
+                    case ScannerResultPageImage pageImage:
+                        fileInfo = $"\"{pageImage.Filename}\", page {pageImage.PageNumber}, image {pageImage.ImageNumber}";
+                        break;
+
+                    case ScannerResultPageGraphic pageGraphic:
+                        fileInfo = $"\"{pageGraphic.Filename}\", page {pageGraphic.PageNumber}, graphic";
+                        break;
+
+                    default:
+                        fileInfo = $"\"{result.Filename}\", unknown type";
+                        break;
                 }
 
                 switch (result.ScanResult)
                 {
-                    case ScanerResultId.NoBarcodeFound:
+                    case ScannerResultId.NoBarcodeFound:
                         sb.AppendLine($"Info: No barcodes found in {fileInfo}");
                         break;
 
-                    case ScanerResultId.NoProgramCode:
+                    case ScannerResultId.NoProgramCode:
                         sb.AppendLine($"Info: No programm barcodes found in {fileInfo}");
                         break;
 
-                    case ScanerResultId.InvalidSignature:
+                    case ScannerResultId.InvalidSignature:
                         sb.AppendLine($"Warning: Invalid barcode signature found in {fileInfo}");
                         break;
 
-                    case ScanerResultId.CheckSumError:
+                    case ScannerResultId.CheckSumError:
                         sb.AppendLine($"Error: Checksum error in {fileInfo}");
                         error = true;
                         break;
 
-                    case ScanerResultId.ProgramCode:
+                    case ScannerResultId.ProgramCode:
                         sb.AppendLine($"Info: Barcodes successfully read in {fileInfo}");
                         break;
 
-                    case ScanerResultId.CannotOpenFile:
+                    case ScannerResultId.CannotOpenFile:
                         sb.AppendLine($"Error: Cannot open file {fileInfo}");
                         error = true;
                         break;

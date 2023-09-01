@@ -33,22 +33,6 @@ using ShapeConverter.Helper;
 
 namespace ShapeConverter.Parser.Pdf
 {
-    internal class PdfBitmapInfo
-    {
-        public PdfBitmapInfo(Bitmap bitmap, int pageNumber, bool isGraphic, int imageNumber)
-        {
-            Bitmap = bitmap;
-            PageNumber = pageNumber;
-            IsGraphic = isGraphic;
-            ImageNumber = imageNumber;
-        }
-
-        public Bitmap Bitmap { get; }
-        public int PageNumber { get; }
-        public bool IsGraphic { get; }
-        public int ImageNumber { get; }
-    }
-
     /// <summary>
     /// The PDF parser
     /// </summary>
@@ -74,7 +58,7 @@ namespace ShapeConverter.Parser.Pdf
 
                     foreach (var image in images)
                     {
-                        yield return new PdfBitmapInfo(PdfDictionaryExtensions.ToImage(image), pageNumber, false, imageNumber);
+                        yield return new PdfBitmapInfoImage(PdfDictionaryExtensions.ToImage(image), pageNumber,  imageNumber);
                         imageNumber++;
                     }
                 }
@@ -103,7 +87,7 @@ namespace ShapeConverter.Parser.Pdf
                     encoder.Frames.Add(BitmapFrame.Create(targetBitmap));
                     encoder.Save(stream);
 
-                    yield return new PdfBitmapInfo(new Bitmap(stream), pageNumber, true, 1);
+                    yield return new PdfBitmapInfoGraphic(new Bitmap(stream), pageNumber);
                 }
 
                 pageNumber++;

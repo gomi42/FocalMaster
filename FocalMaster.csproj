@@ -76,6 +76,8 @@
     <Compile Include="BarcodeGenerator\SvgBarcodeGenerator.cs" />
     <Compile Include="BarcodeGenerator\TifBarcodeGenerator.cs" />
     <Compile Include="BarcodeScanner\BarcodeScanner.cs" />
+    <Compile Include="BarcodeScanner\ImageResult.cs" />
+    <Compile Include="BarcodeScanner\ScannerResult.cs" />
     <Compile Include="Helper\BitmapSourceConverter.cs" />
     <Compile Include="Compiler\CompileDirective.cs" />
     <Compile Include="Compiler\CompileMne.cs" />
@@ -113,6 +115,7 @@
     <Compile Include="PdfReader\Helper\MatrixUtilities.cs" />
     <Compile Include="PdfReader\Main\ContentInterpreter.cs" />
     <Compile Include="PdfReader\Main\GraphicsState.cs" />
+    <Compile Include="PdfReader\Main\PdfBitmapInfo.cs" />
     <Compile Include="PdfReader\Main\PdfKeys.cs" />
     <Compile Include="PdfReader\Main\PdfParser.cs" />
     <Compile Include="PdfReader\Main\PdfUtilities.cs" />
