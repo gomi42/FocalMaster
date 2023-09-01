@@ -534,6 +534,7 @@ namespace FocalMaster
             if (!error)
             {
                 MyTabControl.SelectedIndex = 1;
+                ShowErrors.Text = string.Empty;
             }
 
             ShowScanning.Visibility = Visibility.Collapsed;
