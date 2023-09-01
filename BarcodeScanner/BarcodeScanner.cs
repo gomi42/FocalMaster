@@ -382,7 +382,7 @@ namespace FocalMaster
                     break;
                 
                 case BitmapInfoPageImage image:
-                    result = new ScannerResultPageImage(scanerResultId, bitmapInfo.Filename, image.PageNumber, image.ImageNumber);
+                    result = new ScannerResultPageImage(scanerResultId, image.Filename, image.PageNumber, image.ImageNumber);
                     break;
 
                 case BitmapInfoImage image:
