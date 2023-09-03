@@ -38,10 +38,10 @@ namespace FocalCompiler
         private int currentRow;
 
         private byte[] barcodeBuf;
-        private int barcodeBufIndex = 0;
-        private int trailing = 0;
+        private int barcodeBufIndex;
+        private int trailing;
 
-        private int currentStatementLineNr = 0;
+        private int currentStatementLineNr;
         private int firstStatementLineNrOfBarcodeRow;
 
         private Compiler compiler;
@@ -71,8 +71,10 @@ namespace FocalCompiler
             compiler.SetXromFile(Path.Combine(Path.GetDirectoryName(exeFilename), "XRomCodes.txt"));
             
             barcodeBuf = new byte[MaxCodeBytesPerRow];
+            barcodeBufIndex = 0;
+            trailing = 0;
+            currentStatementLineNr = 0;
             string[] lines = focal.Split(new string[] { "\r\n" }, StringSplitOptions.None);
-
             int sourceLineNr = 1;
 
             foreach (var line in lines)
