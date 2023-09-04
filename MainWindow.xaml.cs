@@ -51,6 +51,7 @@ namespace FocalMaster
 #if DEBUG
             list.Add(@"D:\Programme\HP41\FocalComp\Testdaten\Git\Test1.jpg");
             list.Add(@"D:\Rechner\Taschenrechner\HP-41\Wand\Manual\34.jpg");
+            list.Add(@"D:\Programme\HP41\FocalComp\Testdaten\PDF\2 eigenval_Vectors o.PDF");
 #endif
             BarcodeFiles.ItemsSource = list;
 
@@ -528,6 +529,7 @@ namespace FocalMaster
                 }
             }
 
+            scanResults.AppendLine(string.Format("Scanned in {0} s", scanner.LastDuration.ToString(@"s\.ff")));
             ShowErrorsScan.Text = scanResults.ToString();
 
 
@@ -594,7 +596,9 @@ namespace FocalMaster
 
             if (scannerResults != null)
             {
-                ShowErrorsScan.Text = ConvertScanResults(scannerResults, out _).ToString();
+                var scanResults = ConvertScanResults(scannerResults, out _);
+                scanResults.AppendLine(string.Format("Scanned in {0} s", scanner.LastDuration.ToString(@"s\.ff")));
+                ShowErrorsScan.Text = scanResults.ToString();
             }
             else
             {

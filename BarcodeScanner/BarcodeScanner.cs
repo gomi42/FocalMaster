@@ -25,6 +25,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using ShapeConverter.Parser.Pdf;
 
 namespace FocalMaster
@@ -101,9 +102,9 @@ namespace FocalMaster
             public int PageNumber { get; }
         }
 
-       /////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////
 
-       class BitmapInfoPageImage : BitmapInfoPage
+        class BitmapInfoPageImage : BitmapInfoPage
         {
             public BitmapInfoPageImage(Bitmap bitmap, string filename, int pageNumber, int imageNumber)
                     : base(bitmap, filename, pageNumber)
@@ -132,6 +133,24 @@ namespace FocalMaster
         private const int MinBoxSize = 4;
         private const int MaxBoxSize = 20;
 
+        private int numParallelThreads;
+
+        /////////////////////////////////////////////////////////////
+
+        public BarcodeScanner()
+        {
+            numParallelThreads = Environment.ProcessorCount - 3;
+
+            if (numParallelThreads <= 0)
+            {
+                numParallelThreads = 1;
+            }
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        public TimeSpan LastDuration { get; private set; }
+
         /////////////////////////////////////////////////////////////
 
         public bool Scan(List<string> files, out byte[] code, out List<ScannerResult> scannerResults)
@@ -140,6 +159,7 @@ namespace FocalMaster
             var programCode = new List<byte>();
             int lastCheckSum = 0;
             int currentRow = 0;
+            DateTime time = DateTime.Now;
 
             var bitmapInfos = GetBitmaps(files);
 
@@ -170,6 +190,7 @@ namespace FocalMaster
             }
 
             code = programCode.ToArray();
+            LastDuration = DateTime.Now - time;
 
             return true;
         }
@@ -182,6 +203,7 @@ namespace FocalMaster
             scannerResults = new List<ScannerResult>();
             int lastCheckSum = 0;
             int currentRow = 0;
+            DateTime time = DateTime.Now;
 
             var bitmapInfos = GetBitmaps(files);
 
@@ -199,6 +221,8 @@ namespace FocalMaster
                 imageResults.Add(imageResult);
                 bitmapInfoBitmap.Bitmap.Dispose();
             }
+
+            LastDuration = DateTime.Now - time;
         }
 
         /////////////////////////////////////////////////////////////
@@ -242,6 +266,7 @@ namespace FocalMaster
         public void ScanDebugBoxes(List<string> files, out List<ImageResult> imageResults)
         {
             imageResults = new List<ImageResult>();
+            DateTime time = DateTime.Now;
 
             var file = files[0];
 
@@ -273,6 +298,7 @@ namespace FocalMaster
             imageResults.Add(imageData);
 
             bitmapInfoBitmap.Bitmap.Dispose();
+            LastDuration = DateTime.Now - time;
         }
 #endif
 
@@ -380,7 +406,7 @@ namespace FocalMaster
                 case BitmapInfoPageGraphic graphic:
                     result = new ScannerResultPageGraphic(scanerResultId, graphic.Filename, graphic.PageNumber);
                     break;
-                
+
                 case BitmapInfoPageImage image:
                     result = new ScannerResultPageImage(scanerResultId, image.Filename, image.PageNumber, image.ImageNumber);
                     break;
@@ -400,15 +426,45 @@ namespace FocalMaster
 
         private EdgeOrientation[,] GetEdges(byte[,] blacks)
         {
-            const int EdgeThreshold = 100 * 3;
-
             var width = blacks.GetLength(0);
             var height = blacks.GetLength(1);
             EdgeOrientation[,] edges = new EdgeOrientation[width, height];
 
+            if (numParallelThreads > 1)
+            {
+                Task[] tasks = new Task[numParallelThreads];
+
+                int step = (height - 2) / numParallelThreads;
+                int fromY = 1;
+                int s;
+
+                for (s = 0; s < numParallelThreads - 1; s++)
+                {
+                    tasks[s] = Task.Factory.StartNew((y) => GetEdgesSlice(blacks, width, (int)y, (int)y + step, edges), fromY);
+                    fromY += step;
+                }
+
+                tasks[s] = Task.Factory.StartNew((y) => GetEdgesSlice(blacks, width, (int)y, height - 1, edges), fromY);
+
+                Task.WaitAll(tasks);
+            }
+            else
+            {
+                GetEdgesSlice(blacks, width, 1, height - 1, edges);
+            }
+
+            return edges;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private void GetEdgesSlice(byte[,] blacks, int width, int yBoxFrom, int yBoxTo, EdgeOrientation[,] edges)
+        {
+            const int EdgeThreshold = 100 * 3;
+
             for (int x = 1; x < width - 1; x++)
             {
-                for (int y = 1; y < height - 1; y++)
+                for (int y = yBoxFrom; y < yBoxTo; y++)
                 {
                     int edgeX = blacks[x - 1, y - 1] - blacks[x, y - 1] +
                                 blacks[x - 1, y] - blacks[x, y] +
@@ -434,23 +490,51 @@ namespace FocalMaster
                     }
                 }
             }
-
-            return edges;
         }
 
         /////////////////////////////////////////////////////////////
 
         private bool[,] FindBoxes(EdgeOrientation[,] edges, int boxSize)
         {
-            const int VerticalHorizontalRatio = 3;
-
             var width = edges.GetLength(0);
             var height = edges.GetLength(1);
             int xBoxes = width / boxSize;
             int yBoxes = height / boxSize;
             var boxes = new bool[xBoxes, yBoxes];
 
-            for (int boxY = 0; boxY < yBoxes; boxY++)
+            if (numParallelThreads > 1)
+            {
+                Task[] tasks = new Task[numParallelThreads];
+
+                int step = yBoxes / numParallelThreads;
+                int fromY = 0;
+                int s;
+
+                for (s = 0; s < numParallelThreads - 1; s++)
+                {
+                    tasks[s] = Task.Factory.StartNew((y) => FindBoxesSlice(edges, xBoxes, (int)y, (int)y + step, boxSize, boxes), fromY);
+                    fromY += step;
+                }
+
+                tasks[s] = Task.Factory.StartNew((y) => FindBoxesSlice(edges, xBoxes, (int)y, yBoxes, boxSize, boxes), fromY);
+
+                Task.WaitAll(tasks);
+            }
+            else
+            {
+                FindBoxesSlice(edges, xBoxes, 0, yBoxes, boxSize, boxes);
+            }
+
+            return boxes;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private void FindBoxesSlice(EdgeOrientation[,] edges, int xBoxes, int yBoxFrom, int yBoxTo, int boxSize, bool[,] boxes)
+        {
+            const int VerticalHorizontalRatio = 3;
+
+            for (int boxY = yBoxFrom; boxY < yBoxTo; boxY++)
             {
                 int boxPixelStartY = boxY * boxSize;
 
@@ -482,8 +566,6 @@ namespace FocalMaster
                     }
                 }
             }
-
-            return boxes;
         }
 
         /////////////////////////////////////////////////////////////
@@ -1056,9 +1138,72 @@ namespace FocalMaster
             byte min = byte.MaxValue;
             byte max = byte.MinValue;
 
+            if (numParallelThreads > 1)
+            {
+                Task[] tasks = new Task[numParallelThreads];
+                int s;
+                int step = height / numParallelThreads;
+                int fromY = 0;
+                (byte, byte)[] minMaxs = new (byte, byte)[numParallelThreads];
+
+                for (s = 0; s < numParallelThreads - 1; s++)
+                {
+                    tasks[s] = Task.Factory.StartNew((t) => minMaxs[(((int, int))t).Item2] = GetMinMaxSlice(grayImage, width, (((int, int))t).Item1, (((int, int))t).Item1 + step), (fromY, s));
+                    fromY += step;
+                }
+
+                tasks[s] = Task.Factory.StartNew((t) => minMaxs[(((int, int))t).Item2] = GetMinMaxSlice(grayImage, width, (((int, int))t).Item1, height), (fromY, s));
+
+                Task.WaitAll(tasks);
+
+                for (s = 0; s < numParallelThreads - 1; s++)
+                {
+                    if (minMaxs[s].Item1 < min)
+                    {
+                        min = minMaxs[s].Item1;
+                    }
+
+                    if (minMaxs[s].Item2 > max)
+                    {
+                        max = minMaxs[s].Item2;
+                    }
+                }
+
+                ///////
+
+                byte threshold = (byte)((max - min) * 0.5);
+                fromY = 0;
+
+                for (s = 0; s < numParallelThreads - 1; s++)
+                {
+                    tasks[s] = Task.Factory.StartNew((y) => BinarizeSlice(grayImage, width, (int)y, (int)y + step, threshold, bin), fromY);
+                    fromY += step;
+                }
+
+                tasks[s] = Task.Factory.StartNew((y) => BinarizeSlice(grayImage, width, (int)y, height, threshold, bin), fromY);
+
+                Task.WaitAll(tasks);
+            }
+            else
+            {
+                (min, max) = GetMinMaxSlice(grayImage, width, 0, height);
+                byte threshold = (byte)((max - min) * 0.5);
+                BinarizeSlice(grayImage, width, 0, height, threshold, bin);
+            }
+
+            return bin;
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        private (byte, byte) GetMinMaxSlice(byte[,] grayImage, int width, int fromY, int toY)
+        {
+            byte min = byte.MaxValue;
+            byte max = byte.MinValue;
+
             for (int x = 0; x < width; x++)
             {
-                for (int y = 0; y < height; y++)
+                for (int y = fromY; y < toY; y++)
                 {
                     var val = grayImage[x, y];
 
@@ -1074,19 +1219,22 @@ namespace FocalMaster
                 }
             }
 
-            byte threshold = (byte)((max - min) * 0.5);
+            return (min, max);
+        }
 
+        /////////////////////////////////////////////////////////////
+
+        private void BinarizeSlice(byte[,] grayImage, int width, int fromY, int toY, byte threshold, byte[,] bin)
+        {
             for (int x = 0; x < width; x++)
             {
-                for (int y = 0; y < height; y++)
+                for (int y = fromY; y < toY; y++)
                 {
                     var val = grayImage[x, y];
 
                     bin[x, y] = val < threshold ? (byte)255 : (byte)0;
                 }
             }
-
-            return bin;
         }
 
         /////////////////////////////////////////////////////////////
@@ -1094,94 +1242,152 @@ namespace FocalMaster
         private unsafe byte[,] CreateGrayScale(Bitmap bitmap)
         {
             var bitmapData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
-            byte* p = (byte*)(void*)bitmapData.Scan0;
+            byte* pixelArray = (byte*)(void*)bitmapData.Scan0;
             int stride = bitmapData.Stride;
             var pixelFormat = bitmap.PixelFormat;
             byte[,] grays = new byte[bitmap.Width, bitmap.Height];
             var brightnessPalette = bitmap.Palette;
-            byte[] pal = null;
+            byte[] palette = null;
+            Action<int, int> grayScaleSliceAction;
+            int width = bitmap.Width;
+            int height = bitmap.Height;
 
-            if (brightnessPalette != null)
+            ////////////////
+            // use local functions because byte* is not possible with delegates
+
+            unsafe void CreateGrayScale1bppIndexedSlice(int fromY, int toY)
             {
-                pal = new byte[brightnessPalette.Entries.Length];
-
-                for (int i = 0; i < brightnessPalette.Entries.Length; i++)
+                for (int x = 0; x < width; x++)
                 {
-                    var color = brightnessPalette.Entries[i];
-                    pal[i] = (byte)((color.R + color.G + color.B) / 3);
+                    for (int y = fromY; y < toY; y++)
+                    {
+                        byte indexes = pixelArray[y * stride + x / 8];
+                        int index = ((indexes << (byte)(x % 8)) & 0x80) != 0 ? 1 : 0;
+                        grays[x, y] = palette[index];
+                    }
                 }
             }
 
-            for (int x = 0; x < bitmap.Width; x++)
+            ////////////////
+
+            unsafe void CreateGrayScale4bppIndexedSlice(int fromY, int toY)
             {
-                for (int y = 0; y < bitmap.Height; y++)
+                for (int x = 0; x < width; x++)
                 {
-                    grays[x, y] = GetPixelBrightness(p, pixelFormat, pal, stride, x, y);
+                    for (int y = fromY; y < toY; y++)
+                    {
+                        byte indexes = pixelArray[y * stride + x / 2];
+                        int index;
+
+                        if ((x % 2) != 0)
+                        {
+                            index = indexes & 0x0f;
+                        }
+                        else
+                        {
+                            index = indexes >> 4;
+                        }
+
+                        grays[x, y] = palette[index];
+                    }
                 }
             }
 
-            bitmap.UnlockBits(bitmapData);
+            ////////////////
 
-            return grays;
-        }
+            unsafe void CreateGrayScale8bppIndexedSlice(int fromY, int toY)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = fromY; y < toY; y++)
+                    {
+                        byte index = pixelArray[y * stride + x];
+                        grays[x, y] = palette[index];
+                    }
+                }
+            }
 
-        /////////////////////////////////////////////////////////////
+            ////////////////
 
-        private unsafe byte GetPixelBrightness(byte* pixelArray, PixelFormat pixelFormat, byte[] palette, int stride, int x, int y)
-        {
-            byte brightness = 0;
+            unsafe void CreateGrayScaleNoneIndexedSlice(int fromY, int toY)
+            {
+                int bytesPerPixel = pixelFormat == PixelFormat.Format24bppRgb ? 3 : 4;
+
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = fromY; y < toY; y++)
+                    {
+                        int pixelIndex = y * stride + x * bytesPerPixel;
+                        var sum = pixelArray[pixelIndex] + pixelArray[pixelIndex + 1] + pixelArray[pixelIndex + 2];
+                        grays[x, y] = (byte)(sum / 3);
+                    }
+                }
+            }
+
+            ////////////////
 
             switch (pixelFormat)
             {
                 case PixelFormat.Format1bppIndexed:
                 {
-                    byte indexes = pixelArray[y * stride + x / 8];
-                    int index = ((indexes << (byte)(x % 8)) & 0x80) != 0 ? 1 : 0;
-                    brightness = palette[index];
+                    grayScaleSliceAction = CreateGrayScale1bppIndexedSlice;
                     break;
                 }
 
                 case PixelFormat.Format4bppIndexed:
                 {
-                    byte indexes = pixelArray[y * stride + x / 2];
-                    int index;
-
-                    if ((x % 2) != 0)
-                    {
-                        index = indexes & 0x0f;
-                    }
-                    else
-                    {
-                        index = indexes >> 4;
-                    }
-
-                    brightness = palette[index];
+                    grayScaleSliceAction = CreateGrayScale4bppIndexedSlice;
                     break;
                 }
 
                 case PixelFormat.Format8bppIndexed:
                 {
-                    byte index = pixelArray[y * stride + x];
-                    brightness = palette[index];
+                    grayScaleSliceAction = CreateGrayScale8bppIndexedSlice;
                     break;
                 }
 
                 default: // 24bpp RGB, 32bpp formats
-                {
-                    int pixelIndex = y * stride + x * (pixelFormat == PixelFormat.Format24bppRgb ? 3 : 4);
-                    ushort sum = 0;
-
-                    for (int i = pixelIndex; i < pixelIndex + 3; i++)
-                    {
-                        sum += pixelArray[i];
-                    }
-
-                    brightness = (byte)(sum / 3);
+                    grayScaleSliceAction = CreateGrayScaleNoneIndexedSlice;
                     break;
+            }
+
+            if (brightnessPalette != null)
+            {
+                palette = new byte[brightnessPalette.Entries.Length];
+
+                for (int i = 0; i < brightnessPalette.Entries.Length; i++)
+                {
+                    var color = brightnessPalette.Entries[i];
+                    palette[i] = (byte)((color.R + color.G + color.B) / 3);
                 }
             }
 
-            return brightness;
+            if (numParallelThreads > 1)
+            {
+                Task[] tasks = new Task[numParallelThreads];
+
+                int step = bitmap.Height / numParallelThreads;
+                int FromY = 0;
+                int s;
+
+                for (s = 0; s < numParallelThreads - 1; s++)
+                {
+                    tasks[s] = Task.Factory.StartNew((y) => grayScaleSliceAction((int)y, (int)y + step), FromY);
+                    FromY += step;
+                }
+
+                tasks[s] = Task.Factory.StartNew((y) => grayScaleSliceAction((int)y, height), FromY);
+
+                Task.WaitAll(tasks);
+            }
+            else
+            {
+                grayScaleSliceAction(0, height);
+            }
+
+            bitmap.UnlockBits(bitmapData);
+
+            return grays;
         }
 
         /////////////////////////////////////////////////////////////
