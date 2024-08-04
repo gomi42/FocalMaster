@@ -71,7 +71,7 @@ namespace FocalCompiler
                 {
                     short Value;
 
-                    if (parameter.GetStackParamter(token.StringValue, out Value))
+                    if (parameter.GetStackParameter(token.StringValue, out Value))
                     {
                         outCode = new byte[2];
                         outCode[0] = (byte)(opCode.Function & 0xff);
@@ -101,7 +101,7 @@ namespace FocalCompiler
                         {
                             short Value;
 
-                            if (parameter.GetStackParamter(token.StringValue, out Value))
+                            if (parameter.GetStackParameter(token.StringValue, out Value))
                             {
                                 outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.Function & 0xff);
@@ -185,7 +185,7 @@ namespace FocalCompiler
                         {
                             short Value;
 
-                            if (parameter.GetStackParamter(token.StringValue, out Value))
+                            if (parameter.GetStackParameter(token.StringValue, out Value))
                             {
                                 outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);
@@ -269,7 +269,7 @@ namespace FocalCompiler
                         {
                             short Value;
 
-                            if (parameter.GetStackParamter(token.StringValue, out Value))
+                            if (parameter.GetStackParameter(token.StringValue, out Value))
                             {
                                 outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);
@@ -339,7 +339,7 @@ namespace FocalCompiler
                 {
                     short Value;
 
-                    if (parameter.GetShortLabelParamter(token.StringValue, out Value))
+                    if (parameter.GetShortLabelParameter(token.StringValue, out Value))
                     {
                         outCode = new byte[2];
                         outCode[0] = (byte)(opCode.Function & 0xff);
@@ -427,7 +427,7 @@ namespace FocalCompiler
                 {
                     short Value;
 
-                    if (parameter.GetShortLabelParamter(token.StringValue, out Value))
+                    if (parameter.GetShortLabelParameter(token.StringValue, out Value))
                     {
                         outCode = new byte[3];
                         outCode[0] = (byte)(opCode.Function & 0xff);
@@ -494,7 +494,7 @@ namespace FocalCompiler
                         {
                             short Value;
 
-                            if (parameter.GetStackParamter(token.StringValue, out Value))
+                            if (parameter.GetStackParameter(token.StringValue, out Value))
                             {
                                 outCode = new byte[2];
                                 outCode[0] = (byte)(opCode.IndirectFunction & 0xff);

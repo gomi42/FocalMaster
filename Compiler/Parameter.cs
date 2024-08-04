@@ -27,58 +27,58 @@ namespace FocalCompiler
 {
     public class Parameter
     {
-        private Dictionary<string, short> stackParamter;
-        private Dictionary<string, short> shortLabelParamter;
+        private Dictionary<string, short> stackParameter;
+        private Dictionary<string, short> shortLabelParameter;
 
         /////////////////////////////////////////////////////////////
 
         public Parameter ()
         {
-            stackParamter = new Dictionary<string, short> ();
+            stackParameter = new Dictionary<string, short> ();
 
-            stackParamter.Add ("T", 112);
-            stackParamter.Add ("Z", 113);
-            stackParamter.Add ("Y", 114);
-            stackParamter.Add ("X", 115);
-            stackParamter.Add ("L", 116);
-            stackParamter.Add ("M", 117);
-            stackParamter.Add ("N", 118);
-            stackParamter.Add ("O", 119);
-            stackParamter.Add ("P", 120);
-            stackParamter.Add ("Q", 121);
-            stackParamter.Add ("R", 122);
-            stackParamter.Add ("A", 123);
-            stackParamter.Add ("B", 124);
-            stackParamter.Add ("C", 125);
-            stackParamter.Add ("D", 126);
-            stackParamter.Add ("E", 127);
+            stackParameter.Add ("T", 112);
+            stackParameter.Add ("Z", 113);
+            stackParameter.Add ("Y", 114);
+            stackParameter.Add ("X", 115);
+            stackParameter.Add ("L", 116);
+            stackParameter.Add ("M", 117);
+            stackParameter.Add ("N", 118);
+            stackParameter.Add ("O", 119);
+            stackParameter.Add ("P", 120);
+            stackParameter.Add ("Q", 121);
+            stackParameter.Add ("R", 122);
+            stackParameter.Add ("A", 123);
+            stackParameter.Add ("B", 124);
+            stackParameter.Add ("C", 125);
+            stackParameter.Add ("D", 126);
+            stackParameter.Add ("E", 127);
 
-            shortLabelParamter = new Dictionary<string, short> ();
+            shortLabelParameter = new Dictionary<string, short> ();
 
-            shortLabelParamter.Add ("A", 102);
-            shortLabelParamter.Add ("B", 103);
-            shortLabelParamter.Add ("C", 104);
-            shortLabelParamter.Add ("D", 105);
-            shortLabelParamter.Add ("E", 106);
-            shortLabelParamter.Add ("F", 107);
-            shortLabelParamter.Add ("G", 108);
-            shortLabelParamter.Add ("H", 109);
-            shortLabelParamter.Add ("I", 110);
-            shortLabelParamter.Add ("J", 111);
-            shortLabelParamter.Add ("a", 123);
-            shortLabelParamter.Add ("b", 124);
-            shortLabelParamter.Add ("c", 125);
-            shortLabelParamter.Add ("d", 126);
-            shortLabelParamter.Add ("e", 127);
+            shortLabelParameter.Add ("A", 102);
+            shortLabelParameter.Add ("B", 103);
+            shortLabelParameter.Add ("C", 104);
+            shortLabelParameter.Add ("D", 105);
+            shortLabelParameter.Add ("E", 106);
+            shortLabelParameter.Add ("F", 107);
+            shortLabelParameter.Add ("G", 108);
+            shortLabelParameter.Add ("H", 109);
+            shortLabelParameter.Add ("I", 110);
+            shortLabelParameter.Add ("J", 111);
+            shortLabelParameter.Add ("a", 123);
+            shortLabelParameter.Add ("b", 124);
+            shortLabelParameter.Add ("c", 125);
+            shortLabelParameter.Add ("d", 126);
+            shortLabelParameter.Add ("e", 127);
         }
 
         /////////////////////////////////////////////////////////////
 
-        public bool GetStackParamter (string parameter, out short value)
+        public bool GetStackParameter (string parameter, out short value)
         {
             value = 0;
 
-            if (stackParamter.TryGetValue (parameter.ToUpper(), out value))
+            if (stackParameter.TryGetValue (parameter.ToUpper(), out value))
                 return true;
 
             return false;
@@ -86,11 +86,11 @@ namespace FocalCompiler
 
         /////////////////////////////////////////////////////////////
 
-        public bool GetShortLabelParamter (string parameter, out short value)
+        public bool GetShortLabelParameter (string parameter, out short value)
         {
             value = 0;
 
-            if (shortLabelParamter.TryGetValue (parameter, out value))
+            if (shortLabelParameter.TryGetValue (parameter, out value))
                 return true;
 
             return false;
